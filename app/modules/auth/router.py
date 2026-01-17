@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.modules.auth.schemas import UserRegister, UserLogin, UserResponse
+from app.modules.auth.schemas import UserRegister, UserLogin, UserResponse, AdminLogin
 from app.modules.auth.models import User, Credential, Tenant, School
 from app.modules.student.models import Student
 from app.modules.teacher.models import Teacher
 from app.modules.parent.models import Parent
-from app.core.security import get_password_hash, verify_password, create_access_token
+from app.core.security import get_password_hash, verify_password, create_access_token, get_current_user
 from datetime import datetime
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -72,7 +72,7 @@ def register(user_in: UserRegister, db: Session = Depends(get_db)):
             user_id=new_user.user_id,
             tenant_id=tenant.tenant_id,
             school_id=school.school_id,
-            grade="N/A", # Default
+            grade=user_in.grade or "Grade 5", # Use provided grade or default
         )
         db.add(student_profile)
     elif new_user.user_type == "teacher":
@@ -127,3 +127,53 @@ def login(login_in: UserLogin, db: Session = Depends(get_db)):
     )
     
     return {"access_token": token, "token_type": "bearer"}
+@router.post("/admin-login")
+def admin_login(login_in: AdminLogin, db: Session = Depends(get_db)):
+    """
+    Admin Login with username (email) and password.
+    """
+    # Find credential
+    cred = db.query(Credential).filter(
+        Credential.identifier == login_in.username,
+        Credential.auth_type == "password"
+    ).first()
+    
+    if not cred or not verify_password(login_in.password, cred.secret_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Check if user is actually admin?? 
+    # For now just verify credentials. 
+    # Optionally: check User table for user_type='admin'
+    user = db.query(User).filter(User.user_id == cred.user_id).first()
+    if not user or user.user_type != 'admin':
+         raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Not an admin account."
+        )
+
+    if cred.status != "active":
+         raise HTTPException(status_code=400, detail="User account is inactive")
+
+    # Generate Token
+    token = create_access_token(
+        user_id=str(cred.user_id),
+        tenant_id=str(cred.tenant_id) if cred.tenant_id else "default"
+    )
+    
+    return {"access_token": token, "token_type": "bearer"}
+
+@router.get("/admin-verify")
+def admin_verify(current_user: User = Depends(get_current_user)):
+    """
+    Verify if the current user is an admin.
+    """
+    if current_user.user_type != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Not an admin."
+        )
+    return {"status": "ok", "user_id": current_user.user_id}

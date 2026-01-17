@@ -18,9 +18,11 @@ class Teacher(Base):
     subjects = Column(JSONB, nullable=True) # List of subjects
     department = Column(String, nullable=True)
     designation = Column(String, nullable=True)
+    employment_type = Column(String, nullable=True)
     bio = Column(Text, nullable=True)
     
-    joining_date = Column(Date, nullable=True)
+    date_of_joining = Column(Date, nullable=True)
+    date_of_exit = Column(Date, nullable=True)
     status = Column(String, default="active")
     
     created_at = Column(DateTime, server_default=func.now())
