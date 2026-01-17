@@ -8,3 +8,5 @@ python-multipart
 passlib[bcrypt]
 bcrypt
 psycopg2-binary
+alembic
+RestrictedPython
