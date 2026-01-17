@@ -1,0 +1,8 @@
+Debug Start
+Checking tables in database...
+Tables found: ['teachers', 'tenants', 'schools', 'credentials', 'users', 'roles', 'permissions', 'user_roles', 'role_permissions', 'students', 'parents', 'guests', 'parent_students', 'user_onboarding_events', 'mentoring_sessions', 'mentor_assignments', 'mentor_questions', 'test_invigilation_sessions', 'audit_logs', 'question_templates', 'question_generation_jobs', 'reports', 'reports_temp', 'generated_questions', 'lottery_registrations']
+Table 'teachers' exists.
+Columns in 'teachers': ['teacher_id', 'user_id', 'tenant_id', 'school_id', 'employee_id', 'designation', 'employment_type', 'date_of_joining', 'date_of_exit', 'status', 'created_at', 'updated_at', 'qualification', 'experience_years', 'subjects', 'department', 'bio']
+
+Attempting dummy insert into teachers...
+Insert executed (unexpectedly allowed with bad FKs, or rolled back).

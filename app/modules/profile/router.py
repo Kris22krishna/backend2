@@ -72,7 +72,26 @@ def get_current_user_profile(
     """
     Fetch current logged-in user's profile.
     """
-    return current_user
+    # Force refresh to ensure relationships are loaded? 
+    # Actually, default loading might be lazy.
+    
+    response_data = current_user.__dict__.copy()
+    
+    if current_user.user_type == "student":
+        # Access backref. It might be a list or a single object depending on configuration.
+        # Given it's a backref on a unique FK, it implies 1-to-1 but SQLAlchemy yields a list by default unless uselist=False
+        profile = current_user.student_profile
+        if profile:
+            # If it's a list, take first. If object, use it.
+            student_obj = profile[0] if isinstance(profile, list) and profile else (profile if not isinstance(profile, list) else None)
+            
+            if student_obj:
+                response_data["grade"] = student_obj.grade
+                # school_name logic could be complex (fetching School model), for now we might leave it or fetch it.
+                # The schema expects string.
+                # We can try to get it from school_id if loaded, or just skip for now as Grade is the priority.
+
+    return response_data
 
 @router.patch("/me", response_model=UserDetail)
 def update_current_user_profile(
@@ -91,6 +110,14 @@ def update_current_user_profile(
         current_user.display_name = user_update.display_name
     if user_update.phone_number:
         current_user.phone_number = user_update.phone_number
+        
+    if user_update.grade and current_user.user_type == "student":
+        # Update student profile grade
+        profile = current_user.student_profile
+        student_obj = profile[0] if isinstance(profile, list) and profile else (profile if not isinstance(profile, list) else None)
+        if student_obj:
+            student_obj.grade = user_update.grade
+            db.add(student_obj)
     
     current_user.updated_at = datetime.now()
     db.commit()
