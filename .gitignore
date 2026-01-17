@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -115,10 +116,27 @@ venv.bak/
 /site
 
 # mypy
+=======
+/verify.py
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Testing cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type checking cache
+>>>>>>> a2fdf95c7e6bead54d764534d3368f9e5f444ee0
 .mypy_cache/
 .dmypy.json
 dmypy.json
 
+<<<<<<< HEAD
 # Pyre type checker
 .pyre/
 
@@ -133,3 +151,24 @@ debug_*.py
 fix_schema.py
 verify_report_query.py
 /verify.py
+=======
+# Ruff cache
+.ruff_cache/
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+>>>>>>> a2fdf95c7e6bead54d764534d3368f9e5f444ee0
