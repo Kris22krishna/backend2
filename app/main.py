@@ -1,4 +1,5 @@
 from fastapi import FastAPI, APIRouter
+from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.modules.auth.router import router as auth_router
 from app.modules.demo.router import router as demo_router
@@ -6,6 +7,8 @@ from app.modules.student.router import router as student_router
 from app.modules.profile.router import router as profile_router
 from app.modules.teacher.router import router as teacher_router
 from app.modules.parent.router import router as parent_router
+from app.modules.questions.router import router as questions_router
+from app.modules.questions.router import generation_router, questions_router as generated_questions_router
 from app.modules.mentorship.router import router as mentorship_router
 from app.modules.guest.router import router as guest_router
 from app.modules.admin.router import router as admin_router
@@ -13,8 +16,6 @@ from app.modules.lottery.router import router as lottery_router
 from app.modules.puzzles.router import router as puzzles_router
 from app.modules.reports.router import router as reports_router
 from app.modules.admin.dashboard_router import router as dashboard_router
-
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
@@ -33,6 +34,9 @@ api_router.include_router(student_router)
 api_router.include_router(profile_router)
 api_router.include_router(teacher_router)
 api_router.include_router(parent_router)
+api_router.include_router(questions_router)
+api_router.include_router(generation_router)
+api_router.include_router(generated_questions_router)
 api_router.include_router(mentorship_router)
 api_router.include_router(guest_router)
 api_router.include_router(admin_router)

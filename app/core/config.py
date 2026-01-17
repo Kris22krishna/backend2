@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres.tacaxuzpkumxemwfoyyz:FxQsaEljMblGt8Ed@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"
