@@ -25,7 +25,7 @@ questions_router = APIRouter(prefix="/generated-questions", tags=["Generated Que
 def create_template(
     template_data: schemas.QuestionTemplateCreate,
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     Create a new question template.
@@ -72,7 +72,7 @@ def list_templates(
     limit: int = Query(50, ge=1, le=100, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     List question templates with filtering and pagination.
@@ -114,7 +114,7 @@ def list_templates(
 def get_template(
     template_id: int,
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     Get a single template by ID.
@@ -146,7 +146,7 @@ def update_template(
     template_id: int,
     update_data: schemas.QuestionTemplateUpdate,
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     Update a question template.
@@ -193,7 +193,7 @@ def update_template(
 def delete_template(
     template_id: int,
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     Delete a template (soft delete - sets status to 'inactive').
@@ -217,7 +217,7 @@ def preview_template(
     template_id: int,
     preview_request: schemas.QuestionTemplatePreviewRequest,
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     Preview a template by generating sample questions.
@@ -278,7 +278,7 @@ def preview_template(
 def create_generation_job(
     job_data: schemas.QuestionGenerationJobCreate,
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     Create a question generation job.
@@ -323,7 +323,7 @@ def create_generation_job(
 def get_generation_job(
     job_id: int,
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     Get generation job status.
@@ -361,7 +361,7 @@ def list_generated_questions(
     limit: int = Query(50, ge=1, le=100, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     List generated questions with filtering and pagination.
@@ -393,7 +393,7 @@ def list_generated_questions(
 def get_generated_question(
     question_id: int,
     db: Session = Depends(get_db),
-    current_user = None
+    current_user = Depends(get_current_user)
 ):
     """
     Get a single generated question by ID.
