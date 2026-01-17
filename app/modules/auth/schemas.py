@@ -10,6 +10,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     phone_number: Optional[str] = None
     password: str
+    grade: Optional[str] = None # Added for student registration
     
     @validator('user_type')
     def validate_user_type(cls, v):
@@ -20,6 +21,10 @@ class UserRegister(BaseModel):
 
 class UserLogin(BaseModel):
     email: EmailStr
+    password: str
+
+class AdminLogin(BaseModel):
+    username: str
     password: str
 
 class UserResponse(BaseModel):

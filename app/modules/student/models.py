@@ -29,18 +29,12 @@ class Report(Base):
     __tablename__ = "reports"
 
     report_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID(as_uuid=True), nullable=True)
-    school_id = Column(UUID(as_uuid=True), nullable=True)
-    requested_by = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True)
-    report_type = Column(String, nullable=True)
-    report_scope = Column(String, nullable=True)
-    target_entity_id = Column(UUID(as_uuid=True), nullable=True)
-    parameters = Column(JSONB, nullable=True)
-    file_url = Column(String, nullable=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=True) # Assuming user_id maps to user
+    report_data = Column(JSONB, nullable=True)
     status = Column(String, nullable=True)
-    generated_at = Column(DateTime, nullable=True)
-    expires_at = Column(DateTime, nullable=True)
+    evaluated_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+    # Removed columns not in DB: tenant_id, school_id, requested_by, report_type, report_scope, target_entity_id, parameters, file_url, expires_at
 
 
 class TestInvigilationSession(Base):

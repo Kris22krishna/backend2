@@ -23,6 +23,7 @@ class UserUpdate(BaseModel):
     last_name: Optional[str] = None
     display_name: Optional[str] = None
     phone_number: Optional[str] = None
+    grade: Optional[str] = None # Added to support student grade update
 
 class UserDetail(BaseModel):
     user_id: UUID
@@ -37,6 +38,9 @@ class UserDetail(BaseModel):
     status: Optional[str]
     last_login_at: Optional[datetime]
     created_at: datetime
+    # Extra fields for specific roles
+    grade: Optional[str] = None
+    school_name: Optional[str] = None
     
     class Config:
         orm_mode = True

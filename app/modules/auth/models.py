@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, func, text
+from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, func, text, Integer, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.base import Base
@@ -10,6 +10,11 @@ class Tenant(Base):
     tenant_name = Column(String, nullable=False)
     tenant_code = Column(String, nullable=False, unique=True)
     status = Column(String)
+    plan_type = Column(String)
+    max_users = Column(Integer)
+    max_schools = Column(Integer)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
 
 class School(Base):
     __tablename__ = "schools"
@@ -17,7 +22,13 @@ class School(Base):
     tenant_id = Column(UUID(as_uuid=True), nullable=False)
     school_name = Column(String)
     school_code = Column(String)
+    school_type = Column(String)
+    board = Column(String)
     status = Column(String)
+    academic_year_start = Column(Date)
+    academic_year_end = Column(Date)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
 
 class Role(Base):
     __tablename__ = "roles"
