@@ -1,0 +1,35 @@
+from pydantic import BaseModel, EmailStr, validator
+from typing import Optional
+from uuid import UUID
+from datetime import datetime
+
+class UserRegister(BaseModel):
+    user_type: str
+    first_name: str
+    last_name: Optional[str] = None
+    email: EmailStr
+    phone_number: Optional[str] = None
+    password: str
+    
+    @validator('user_type')
+    def validate_user_type(cls, v):
+        allowed_roles = ["student", "teacher", "parent", "math_mentor", "guest", "admin"]
+        if v.lower() not in allowed_roles:
+            raise ValueError(f"Invalid user_type. Must be one of: {', '.join(allowed_roles)}")
+        return v.lower()
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserResponse(BaseModel):
+    user_id: UUID
+    email: Optional[str]
+    user_type: str
+    first_name: Optional[str]
+    last_name: Optional[str]
+    status: str
+    created_at: datetime
+    
+    class Config:
+        orm_mode = True

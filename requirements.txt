@@ -4,3 +4,6 @@ sqlalchemy
 pydantic<2.0.0
 pyjwt
 python-multipart
+passlib[bcrypt]
+bcrypt
+psycopg2-binary
