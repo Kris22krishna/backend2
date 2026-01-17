@@ -17,7 +17,11 @@ from app.modules.puzzles.router import router as puzzles_router
 from app.modules.reports.router import router as reports_router
 from app.modules.admin.dashboard_router import router as dashboard_router
 
-app = FastAPI()
+app = FastAPI(
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+    }
+)
 
 app.add_middleware(
     CORSMiddleware,

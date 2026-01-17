@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field, validator
-from typing import Optional, Dict, Any, List, Literal
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, List, Dict, Any, Literal
 from datetime import datetime
+from uuid import UUID
 
 # ============================================================================
 # Request Schemas
@@ -16,15 +17,16 @@ class QuestionTemplateCreate(BaseModel):
     difficulty: str = Field(..., min_length=1, max_length=50, description="Difficulty level (e.g., 'easy', 'medium', 'hard')")
     type: Literal["mcq", "user_input", "image_based", "code_based"] = Field(..., description="Question type")
     dynamic_question: str = Field(..., min_length=10, max_length=50000, description="Python code to generate question")
-    logical_answer: str = Field(..., min_length=10, max_length=50000, description="Python code to validate answer")
+    logical_answer: str = Field(..., min_length=10, max_length=50000, description="Python code to validate user answer")
     
-    @validator('dynamic_question', 'logical_answer')
+    @field_validator('dynamic_question', 'logical_answer')
+    @classmethod
     def validate_python_code(cls, v):
-        """Basic validation that code is not empty and has reasonable structure"""
-        if not v.strip():
-            raise ValueError("Code cannot be empty")
-        if 'def ' not in v:
-            raise ValueError("Code must define a function")
+        """Validate that the code is syntactically correct Python"""
+        try:
+            compile(v, '<string>', 'exec')
+        except SyntaxError as e:
+            raise ValueError(f"Invalid Python syntax: {str(e)}")
         return v
 
 
@@ -70,7 +72,7 @@ class QuestionTemplateResponse(BaseModel):
     difficulty: str
     type: str
     status: str
-    created_by_user_id: int
+    created_by_user_id: Optional[UUID]  # Changed from int to UUID
     created_at: datetime
     updated_at: datetime
     
@@ -121,7 +123,7 @@ class QuestionGenerationJobResponse(BaseModel):
     requested_count: int
     generated_count: int
     status: str
-    created_by_user_id: int
+    created_by_user_id: Optional[UUID]  # Changed from int to UUID
     created_at: datetime
     completed_at: Optional[datetime]
     

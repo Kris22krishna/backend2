@@ -21,8 +21,10 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.modules.auth.models import User, Credential
+from uuid import UUID
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+# CRITICAL: This tokenUrl must match the actual login endpoint
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -33,8 +35,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     payload = decode_token(token)
     if payload is None:
         raise credentials_exception
-    user_id: str = payload.get("sub")
-    if user_id is None:
+    user_id_str: str = payload.get("sub")
+    if user_id_str is None:
+        raise credentials_exception
+    
+    # Convert string UUID to UUID object for comparison
+    try:
+        user_id = UUID(user_id_str)
+    except (ValueError, AttributeError):
         raise credentials_exception
         
     # We link via Credential or User. The token has user_id, which matches User.user_id

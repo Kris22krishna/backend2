@@ -1,4 +1,5 @@
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, func, Text, JSON
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -32,7 +33,7 @@ class QuestionTemplate(Base):
     
     # Metadata
     status = Column(String, default="draft", index=True)          # "draft", "active", "inactive"
-    created_by_user_id = Column(Integer, nullable=True, index=True)  # Nullable, no FK to avoid type mismatch
+    created_by_user_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # UUID to match User model
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
     
@@ -59,7 +60,7 @@ class QuestionGenerationJob(Base):
     
     # Status Tracking
     status = Column(String, default="pending", index=True)        # "pending", "processing", "completed", "failed"
-    created_by_user_id = Column(Integer, nullable=True, index=True)  # Nullable, no FK to avoid type mismatch
+    created_by_user_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # UUID to match User model
     created_at = Column(DateTime, server_default=func.now())
     completed_at = Column(DateTime, nullable=True)
     

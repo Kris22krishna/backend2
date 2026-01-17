@@ -51,7 +51,7 @@ class QuestionTemplateService:
             dynamic_question=template_data.dynamic_question,
             logical_answer=template_data.logical_answer,
             status="draft",
-            created_by_user_id=user_id or 1  # Default to 1 if None (for testing)
+            created_by_user_id=user_id  # UUID from current_user
         )
         
         db.add(template)
