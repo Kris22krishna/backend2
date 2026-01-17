@@ -60,11 +60,13 @@ def create_report(
         pass
 
     new_report = Report(
-        target_entity_id=target_user_id,
-        report_type=report_in.category or "Assessment",
-        parameters=report_in.reportData,
-        generated_at=datetime.utcnow(),
-        status="completed"
+        user_id=target_user_id,
+        status="completed",
+        report_data={
+            "report_type": report_in.category or "Assessment",
+            "parameters": report_in.reportData
+        },
+        evaluated_at=datetime.utcnow()
     )
     db.add(new_report)
     db.commit()
@@ -76,7 +78,7 @@ def create_report(
         "message": "Report saved"
     }
 
-@router.get("", response_model=list) # simplified response model for now
+@router.get("", response_model=dict) # Changing to dict or ReportListResponse
 def get_reports(
     uid: str = Query(..., description="User ID"),
     childId: Optional[str] = Query(None, description="Child ID"),
@@ -103,17 +105,33 @@ def get_reports(
             pass
             
     if not target_uid:
-        return []
+        return {"success": True, "data": []}
         
-    reports = db.query(Report).filter(Report.target_entity_id == target_uid).order_by(desc(Report.generated_at)).all()
+    reports = db.query(Report).filter(Report.user_id == target_uid).order_by(desc(Report.created_at)).all()
     
-    # Simple serialization
-    return [
-        {
+    # Serialize to match Frontend expectations (DashboardClient.jsx)
+    results = []
+    for r in reports:
+        # report_data in DB is { "report_type": "...", "parameters": { ... } }
+        # Frontend expects 'report_json' to be the object that contains 'summary', 'timestamp', etc.
+        # So we return the 'parameters' dict as 'report_json', injecting type/timestamp.
+        
+        data = r.report_data if r.report_data else {}
+        # Extract inner parameters which likely holds the actual report (summary, etc)
+        payload = data.get("parameters", {})
+        if not payload:
+             # Fallback if structure is flat (legacy) or different
+             payload = data
+             
+        # Ensure type is present
+        if "type" not in payload:
+            payload["type"] = data.get("report_type", "Assessment")
+            
+        results.append({
             "report_id": str(r.report_id),
-            "report_type": r.report_type,
-            "generated_at": r.generated_at,
-            "parameters": r.parameters
-        }
-        for r in reports
-    ]
+            "created_at": r.created_at,
+            "report_json": payload, # Frontend parses this
+            "user_id": str(r.user_id)
+        })
+
+    return {"success": True, "data": results}

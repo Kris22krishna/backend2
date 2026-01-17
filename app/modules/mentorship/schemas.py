@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
@@ -21,8 +21,7 @@ class SessionResponse(BaseModel):
     ended_at: Optional[datetime]
     status: str = "active"
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AssignmentCreate(BaseModel):
     session_id: UUID
@@ -35,5 +34,4 @@ class AssignmentResponse(BaseModel):
     content_type: str
     assigned_at: Optional[datetime]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)

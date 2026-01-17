@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 from typing import Optional, List, Any, Dict
 from datetime import datetime, date
 from uuid import UUID
@@ -20,8 +20,7 @@ class TeacherProfile(BaseModel):
     tenant_name: Optional[str]
     school_name: Optional[str]
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class StudentSummary(BaseModel):
     user_id: UUID

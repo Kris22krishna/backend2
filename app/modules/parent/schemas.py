@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
@@ -12,8 +12,7 @@ class ParentProfile(BaseModel):
     parent_id: Optional[UUID]
     occupation: Optional[str]
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ChildDetail(BaseModel):
     student_id: UUID

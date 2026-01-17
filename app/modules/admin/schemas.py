@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 from typing import Optional, Any, Dict
 from datetime import datetime
 from uuid import UUID
@@ -15,8 +15,7 @@ class AuditLogResponse(BaseModel):
     action: str
     performed_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class DashboardStatsResponse(BaseModel):
     totalStudents: int

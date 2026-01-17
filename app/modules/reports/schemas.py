@@ -12,3 +12,8 @@ class ReportResponse(BaseModel):
     success: bool
     report_id: Optional[str]
     message: Optional[str]
+
+class ReportListResponse(BaseModel):
+    success: bool
+    data: list
+    message: Optional[str] = None

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import ConfigDict, BaseModel, EmailStr, validator
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
@@ -42,8 +42,7 @@ class UserDetail(BaseModel):
     grade: Optional[str] = None
     school_name: Optional[str] = None
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class RoleAssignment(BaseModel):
     role_ids: List[UUID]

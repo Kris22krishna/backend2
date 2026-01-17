@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 from typing import Optional, List
 from datetime import datetime, date
 from uuid import UUID
@@ -15,8 +15,7 @@ class StudentProfile(BaseModel):
     tenant_name: Optional[str]
     school_name: Optional[str]
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AssessmentStartRequest(BaseModel):
     test_id: Optional[str] = None # Placeholder for when we have real tests
@@ -34,8 +33,7 @@ class ReportResponse(BaseModel):
     generated_at: Optional[datetime]
     status: Optional[str]
     
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class LogoutResponse(BaseModel):
     message: str

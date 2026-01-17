@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
@@ -15,5 +15,4 @@ class GuestResponse(BaseModel):
     guest_type: Optional[str]
     access_expires_at: Optional[datetime]
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
