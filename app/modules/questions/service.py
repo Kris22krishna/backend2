@@ -41,6 +41,7 @@ class QuestionTemplateService:
         
         # Create template
         template = QuestionTemplate(
+            grade_level=template_data.grade_level,
             module=template_data.module,
             category=template_data.category,
             topic=template_data.topic,
@@ -50,7 +51,7 @@ class QuestionTemplateService:
             type=template_data.type,
             dynamic_question=template_data.dynamic_question,
             logical_answer=template_data.logical_answer,
-            status="draft",
+            status=template_data.status,
             created_by_user_id=user_id  # UUID from current_user
         )
         
@@ -68,6 +69,7 @@ class QuestionTemplateService:
     @staticmethod
     def list_templates(
         db: Session,
+        grade_level: Optional[int] = None,
         module: Optional[str] = None,
         category: Optional[str] = None,
         difficulty: Optional[str] = None,
@@ -80,6 +82,8 @@ class QuestionTemplateService:
         query = db.query(QuestionTemplate)
         
         # Apply filters
+        if grade_level:
+            query = query.filter(QuestionTemplate.grade_level == grade_level)
         if module:
             query = query.filter(QuestionTemplate.module == module)
         if category:

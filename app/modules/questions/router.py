@@ -65,6 +65,7 @@ def create_template(
 
 @router.get("", response_model=schemas.APIResponse)
 def list_templates(
+    grade_level: Optional[int] = Query(None, ge=1, le=12, description="Filter by grade level"),
     module: Optional[str] = Query(None, description="Filter by module"),
     category: Optional[str] = Query(None, description="Filter by category"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
@@ -77,13 +78,14 @@ def list_templates(
     """
     List question templates with filtering and pagination.
     
-    - Supports filtering by module, category, difficulty, status
+    - Supports filtering by grade_level, module, category, difficulty, status
     - Paginated results (max 100 per page)
     - Returns total count
     """
     try:
         templates, total = service.QuestionTemplateService.list_templates(
             db=db,
+            grade_level=grade_level,
             module=module,
             category=category,
             difficulty=difficulty,
