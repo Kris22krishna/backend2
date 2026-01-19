@@ -12,6 +12,9 @@ class QuestionTemplate(Base):
     
     template_id = Column(Integer, primary_key=True, autoincrement=True)
     
+    # Grade Assignment
+    grade_level = Column(Integer, nullable=False, index=True)     # 1-12 for student grade assignment
+    
     # Categorization
     module = Column(String, nullable=False, index=True)           # "Math Skill"
     category = Column(String, nullable=False, index=True)         # "Fundamentals"

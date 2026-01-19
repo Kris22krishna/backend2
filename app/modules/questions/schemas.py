@@ -9,6 +9,7 @@ from uuid import UUID
 
 class QuestionTemplateCreate(BaseModel):
     """Schema for creating a new question template"""
+    grade_level: int = Field(..., ge=1, le=12, description="Grade level (1-12) for student assignment")
     module: str = Field(..., min_length=1, max_length=100, description="Module name (e.g., 'Math Skill')")
     category: str = Field(..., min_length=1, max_length=100, description="Category (e.g., 'Fundamentals')")
     topic: str = Field(..., min_length=1, max_length=100, description="Topic (e.g., 'Addition')")
@@ -18,6 +19,7 @@ class QuestionTemplateCreate(BaseModel):
     type: Literal["mcq", "user_input", "image_based", "code_based"] = Field(..., description="Question type")
     dynamic_question: str = Field(..., min_length=10, max_length=50000, description="Python code to generate question")
     logical_answer: str = Field(..., min_length=10, max_length=50000, description="Python code to validate user answer")
+    status: Literal["draft", "active", "inactive"] = Field(default="draft", description="Template status")
     
     @field_validator('dynamic_question', 'logical_answer')
     @classmethod
@@ -32,6 +34,7 @@ class QuestionTemplateCreate(BaseModel):
 
 class QuestionTemplateUpdate(BaseModel):
     """Schema for updating an existing question template"""
+    grade_level: Optional[int] = Field(None, ge=1, le=12)
     module: Optional[str] = Field(None, min_length=1, max_length=100)
     category: Optional[str] = Field(None, min_length=1, max_length=100)
     topic: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -64,6 +67,7 @@ class QuestionGenerationJobCreate(BaseModel):
 class QuestionTemplateResponse(BaseModel):
     """Schema for question template response"""
     template_id: int
+    grade_level: int
     module: str
     category: str
     topic: str
@@ -71,8 +75,12 @@ class QuestionTemplateResponse(BaseModel):
     format: str
     difficulty: str
     type: str
+    dynamic_question: str
+    logical_answer: str
+    preview_data: Optional[Dict[str, Any]] = None
+    preview_html: Optional[str] = None
     status: str
-    created_by_user_id: Optional[UUID]  # Changed from int to UUID
+    created_by_user_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime
     
