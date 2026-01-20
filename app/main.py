@@ -16,6 +16,7 @@ from app.modules.lottery.router import router as lottery_router
 from app.modules.puzzles.router import router as puzzles_router
 from app.modules.reports.router import router as reports_router
 from app.modules.admin.dashboard_router import router as dashboard_router
+from app.modules.content.router import router as content_router
 
 app = FastAPI(
     swagger_ui_parameters={
@@ -48,6 +49,7 @@ api_router.include_router(lottery_router)
 api_router.include_router(puzzles_router)
 api_router.include_router(reports_router)
 api_router.include_router(dashboard_router, prefix="/dashboard")
+api_router.include_router(content_router)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
