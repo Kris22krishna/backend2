@@ -72,8 +72,7 @@ def list_templates(
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(50, ge=1, le=100, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     List question templates with filtering and pagination.
@@ -362,8 +361,7 @@ def list_generated_questions(
     job_id: Optional[int] = Query(None, description="Filter by job ID"),
     limit: int = Query(50, ge=1, le=100, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     List generated questions with filtering and pagination.
@@ -394,8 +392,7 @@ def list_generated_questions(
 @questions_router.get("/{question_id}", response_model=schemas.APIResponse)
 def get_generated_question(
     question_id: int,
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """
     Get a single generated question by ID.
