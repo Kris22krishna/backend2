@@ -208,12 +208,25 @@ class QuestionExecutor:
         def execute():
             exec(byte_code, safe_globals)
             
-            # Verify generate function exists
-            if 'generate' not in safe_globals:
-                raise CodeExecutionError("Code must define a 'generate()' function")
-            
-            # Call generate function
-            result = safe_globals['generate']()
+            # Check for explicit generate() function
+            if 'generate' in safe_globals and callable(safe_globals['generate']):
+                result = safe_globals['generate']()
+            else:
+                # Fallback: check for implicit result in global variables
+                # This supports simple top-level scripts that just set variables
+                if 'question' in safe_globals and 'answer' in safe_globals:
+                    result = {
+                        'question': safe_globals['question'],
+                        'answer': safe_globals['answer'],
+                        'variables': safe_globals.get('variables', {}),
+                        'options': safe_globals.get('options'),
+                        'type': safe_globals.get('type'),
+                        'topic': safe_globals.get('topic')
+                    }
+                    # Clean up None values
+                    result = {k: v for k, v in result.items() if v is not None}
+                else:
+                    raise CodeExecutionError("Code must define a 'generate()' function OR set 'question' and 'answer' variables")
             
             # Validate output structure
             self._validate_generator_output(result)

@@ -395,6 +395,7 @@ def list_generated_questions(
     job_id: Optional[int] = Query(None, description="Filter by job ID"),
     limit: int = Query(50, ge=1, le=100, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
+    random: bool = Query(False, description="Return questions in random order"),
     db: Session = Depends(get_db)
 ):
     """
@@ -402,13 +403,15 @@ def list_generated_questions(
     
     - Filter by template_id or job_id
     - Paginated results (max 100 per page)
+    - Optional random ordering
     """
     questions, total = service.QuestionGenerationService.list_generated_questions(
         db=db,
         template_id=template_id,
         job_id=job_id,
         limit=limit,
-        offset=offset
+        offset=offset,
+        random_order=random
     )
     
     return schemas.APIResponse(
@@ -498,4 +501,24 @@ def save_syllabus_config(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "INTERNAL_ERROR", "message": str(e)}
         )
+
+
+@router.get("/syllabus/{grade_level}", response_model=schemas.APIResponse)
+def get_grade_syllabus(
+    grade_level: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get the complete hierarchical syllabus for a grade.
+    Matches the specific JSON structure requested by frontend.
+    """
+    try:
+        data = service.SyllabusService.get_grade_syllabus(db=db, grade_level=grade_level)
+        return schemas.APIResponse(success=True, data=data, error=None)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "INTERNAL_ERROR", "message": str(e)}
+        )
+
 

@@ -87,7 +87,7 @@ class GeneratedQuestion(Base):
     question_html = Column(Text, nullable=False)                  # Rendered HTML question
     answer_value = Column(String, nullable=False)                 # Correct answer
     variables_used = Column(JSON, nullable=True)                  # Variables used in generation (for debugging)
-    
+
     # Metadata
     difficulty_snapshot = Column(String, nullable=True)           # Difficulty at generation time
     hash_signature = Column(String, nullable=True, index=True)    # Hash to detect duplicates

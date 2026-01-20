@@ -246,7 +246,7 @@ class QuestionGenerationService:
             generation_seed=job_data.generation_seed,
             generation_params=job_data.generation_params,
             status="pending",
-            created_by_user_id=user_id or 1  # Default to 1 if None (for testing)
+            created_by_user_id=None # Default to None to avoid UUID type errors with integer defaults
         )
         
         db.add(job)
@@ -278,51 +278,68 @@ class QuestionGenerationService:
         
         try:
             for _ in range(job.requested_count):
-                # Execute generator
-                result = executor.execute_generator(template.dynamic_question)
+                max_retries = 5
+                retry_count = 0
+                question = None
                 
-                # Extract question data based on type
-                question_text = result.get('question', '')
-                answer_value = str(result.get('answer', ''))
+                while retry_count < max_retries:
+                    # Execute generator
+                    result = executor.execute_generator(template.dynamic_question)
+                    
+                    # Extract question data based on type
+                    question_text = result.get('question', '')
+                    answer_value = str(result.get('answer', ''))
+                    
+                    # Build comprehensive variables_used object
+                    variables_used = {
+                        'question_type': result.get('type', template.type),  # 'mcq', 'userInput', etc.
+                        'original_variables': result.get('variables', {}),  # Original generation variables
+                    }
+                    
+                    # For MCQ questions, store options
+                    if 'options' in result:
+                        variables_used['options'] = result['options']
+                        variables_used['has_options'] = True
+                    else:
+                        variables_used['has_options'] = False
+                    
+                    # Store topic if provided
+                    if 'topic' in result:
+                        variables_used['topic'] = result['topic']
+                    
+                    # Create hash signature for duplicate detection
+                    # Include options in hash for MCQ to detect true duplicates
+                    if variables_used.get('has_options'):
+                        hash_input = f"{question_text}{answer_value}{json.dumps(result.get('options', []), sort_keys=True)}"
+                    else:
+                        hash_input = f"{question_text}{answer_value}"
+                    hash_signature = hashlib.sha256(hash_input.encode()).hexdigest()
+                    
+                    # Check for duplicates
+                    existing = db.query(GeneratedQuestion).filter(
+                        GeneratedQuestion.template_id == template.template_id,
+                        GeneratedQuestion.hash_signature == hash_signature
+                    ).first()
+                    
+                    if not existing:
+                        # Create generated question
+                        question = GeneratedQuestion(
+                            job_id=job.job_id,
+                            template_id=template.template_id,
+                            question_html=question_text,
+                            answer_value=answer_value,
+                            variables_used=variables_used,
+                            difficulty_snapshot=template.difficulty,
+                            hash_signature=hash_signature
+                        )
+                        break
+                    
+                    # Duplicate found, retry
+                    retry_count += 1
                 
-                # Build comprehensive variables_used object
-                variables_used = {
-                    'question_type': result.get('type', template.type),  # 'mcq', 'userInput', etc.
-                    'original_variables': result.get('variables', {}),  # Original generation variables
-                }
-                
-                # For MCQ questions, store options
-                if 'options' in result:
-                    variables_used['options'] = result['options']
-                    variables_used['has_options'] = True
-                else:
-                    variables_used['has_options'] = False
-                
-                # Store topic if provided
-                if 'topic' in result:
-                    variables_used['topic'] = result['topic']
-                
-                # Create hash signature for duplicate detection
-                # Include options in hash for MCQ to detect true duplicates
-                if variables_used.get('has_options'):
-                    hash_input = f"{question_text}{answer_value}{json.dumps(result.get('options', []), sort_keys=True)}"
-                else:
-                    hash_input = f"{question_text}{answer_value}"
-                hash_signature = hashlib.sha256(hash_input.encode()).hexdigest()
-                
-                # Create generated question
-                question = GeneratedQuestion(
-                    job_id=job.job_id,
-                    template_id=template.template_id,
-                    question_html=question_text,
-                    answer_value=answer_value,
-                    variables_used=variables_used,
-                    difficulty_snapshot=template.difficulty,
-                    hash_signature=hash_signature
-                )
-                
-                db.add(question)
-                generated_count += 1
+                if question:
+                    db.add(question)
+                    generated_count += 1
             
             # Update job
             job.status = "completed"
@@ -330,6 +347,8 @@ class QuestionGenerationService:
             job.completed_at = datetime.utcnow()
             
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             job.status = "failed"
             db.commit()
             raise ValueError(f"Job failed: {str(e)}")
@@ -347,7 +366,8 @@ class QuestionGenerationService:
         template_id: Optional[int] = None,
         job_id: Optional[int] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
+        random_order: bool = False
     ) -> tuple[List[GeneratedQuestion], int]:
         """List generated questions with filtering and pagination"""
         
@@ -362,8 +382,11 @@ class QuestionGenerationService:
         # Get total count
         total = query.count()
         
-        # Apply pagination
-        questions = query.order_by(GeneratedQuestion.created_at.desc()).offset(offset).limit(limit).all()
+        # Apply pagination and sorting
+        if random_order:
+            questions = query.order_by(func.random()).offset(offset).limit(limit).all()
+        else:
+            questions = query.order_by(GeneratedQuestion.created_at.desc()).offset(offset).limit(limit).all()
         
         return questions, total
     
@@ -409,4 +432,156 @@ class SyllabusService:
             db.commit()
             db.refresh(new_config)
             return new_config
+
+    @staticmethod
+    def get_grade_syllabus(db: Session, grade_level: int) -> Dict[str, Any]:
+        """
+        Get the complete hierarchical syllabus for a grade.
+        Merges saved SyllabusConfig with current active QuestionTemplates.
+        """
+        # 1. Fetch Config
+        config_record = SyllabusService.get_config(db, grade_level)
+        
+        # 2. Fetch Active Templates
+        # Fetching all active templates first is safer/easier for now
+        all_templates = db.query(QuestionTemplate).filter(
+            QuestionTemplate.status == "active"
+        ).all()
+        
+        grade_templates = []
+        for t in all_templates:
+            if not t.grade_level:
+                continue
+            
+            # Handle both list (ARRAY) and legacy int
+            if isinstance(t.grade_level, list):
+                if grade_level in t.grade_level:
+                    grade_templates.append(t)
+            elif isinstance(t.grade_level, int):
+                if t.grade_level == grade_level:
+                    grade_templates.append(t)
+        
+        # Map templates by ID for easy lookup
+        template_map = {t.template_id: t for t in grade_templates}
+        
+        # Helper to convert template to skill node
+        def to_skill_node(t: QuestionTemplate):
+            topic_code = (t.topic and len(t.topic) > 0 and t.topic[0]) or "X"
+            title = t.subtopic or t.topic or "Untitled Skill"
+            return {
+                "id": t.template_id,
+                "code": f"{topic_code}.{t.template_id}", 
+                "title": title,
+                "type": "skill"
+            }
+            
+        # 3. Build Tree
+        if config_record and config_record.config:
+            # Use saved config as skeleton
+            syllabus_tree = config_record.config
+            
+            # Recursive function to hydrate skills
+            used_template_ids = set()
+            
+            def hydrate_node(node):
+                if "skills" in node:
+                    valid_skills = []
+                    for skill_ref in node["skills"]:
+                        # Handle case where skill_ref might be just an ID or dict
+                        tid = skill_ref.get("id") if isinstance(skill_ref, dict) else skill_ref
+                        
+                        if tid in template_map:
+                            t = template_map[tid]
+                            hydrated = to_skill_node(t)
+                            valid_skills.append(hydrated)
+                            used_template_ids.add(tid)
+                    node["skills"] = valid_skills
+                
+                if "children" in node:
+                    for child in node["children"]:
+                        hydrate_node(child)
+            
+            # Use deepcopy to avoid modifying ORM object issues
+            import copy
+            syllabus_tree = copy.deepcopy(syllabus_tree)
+            
+            for category in syllabus_tree:
+                hydrate_node(category)
+                
+            # Handle Orphans
+            orphans = [t for t in grade_templates if t.template_id not in used_template_ids]
+            
+            if orphans:
+                for t in orphans:
+                    t_cat = t.category or "Uncategorized"
+                    t_top = t.topic or "General"
+                    
+                    # Try to find matching category
+                    cat_node = next((c for c in syllabus_tree if c["name"] == t_cat), None)
+                    if not cat_node:
+                        cat_node = {
+                            "id": f"cat-{t_cat}", 
+                            "name": t_cat, 
+                            "code": (t_cat[0] if t_cat else "U").upper(),
+                            "children": [],
+                            "skills": []
+                        }
+                        syllabus_tree.append(cat_node)
+                        
+                    # Find matching topic/child
+                    topic_node = next((c for c in cat_node.get("children", []) if c["name"] == t_top), None)
+                    if not topic_node:
+                        topic_node = {
+                            "id": f"topic-{t_cat}-{t_top}",
+                            "name": t_top,
+                            "children": [],
+                            "skills": []
+                        }
+                        if "children" not in cat_node: cat_node["children"] = []
+                        cat_node["children"].append(topic_node)
+                        
+                    if "skills" not in topic_node: topic_node["skills"] = []
+                    topic_node["skills"].append(to_skill_node(t))
+
+        else:
+            # Default Generation Strategy
+            categories = {}
+            
+            for t in grade_templates:
+                cat_name = t.category or "General"
+                topic_name = t.topic or "Misc"
+                
+                if cat_name not in categories:
+                    categories[cat_name] = {
+                        "id": f"cat-{cat_name}",
+                        "name": cat_name,
+                        "code": cat_name[0].upper(),
+                        "children": [],  # Topics
+                        "skills": []     # Direct skills
+                    }
+                
+                cat_node = categories[cat_name]
+                topic_node = next((c for c in cat_node["children"] if c["name"] == topic_name), None)
+                
+                if not topic_node:
+                    topic_node = {
+                        "id": f"topic-{cat_name}-{topic_name}",
+                        "name": topic_name,
+                        "children": [],
+                        "skills": []
+                    }
+                    cat_node["children"].append(topic_node)
+                    
+                topic_node["skills"].append(to_skill_node(t))
+            
+            syllabus_tree = list(categories.values())
+            syllabus_tree.sort(key=lambda x: x["name"])
+            for cat in syllabus_tree:
+                cat["children"].sort(key=lambda x: x["name"])
+        
+        return {
+            "gradeId": grade_level,
+            "gradeName": f"Class {grade_level}",
+            "categories": syllabus_tree
+        }
 
