@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, func, Text, JSON
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -13,7 +13,7 @@ class QuestionTemplate(Base):
     template_id = Column(Integer, primary_key=True, autoincrement=True)
     
     # Grade Assignment
-    grade_level = Column(Integer, nullable=False, index=True)     # 1-12 for student grade assignment
+    grade_level = Column(ARRAY(Integer), nullable=False, index=True)     # 1-12 for student grade assignment
     
     # Categorization
     module = Column(String, nullable=False, index=True)           # "Math Skill"
@@ -96,3 +96,16 @@ class GeneratedQuestion(Base):
     # Relationships
     job = relationship("QuestionGenerationJob", back_populates="generated_questions")
     template = relationship("QuestionTemplate", back_populates="generated_questions")
+
+
+class SyllabusConfig(Base):
+    """
+    Store syllabus arrangement configuration per grade.
+    This allows manual ordering of topics and subtopics.
+    """
+    __tablename__ = "syllabus_configs"
+    
+    grade_level = Column(Integer, primary_key=True)  # 1-12
+    config = Column(JSON, nullable=False)            # JSON structure of ordered categories/topics
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+

@@ -10,10 +10,12 @@ import hashlib
 import json
 from datetime import datetime
 
+from app.modules.questions import models
 from app.modules.questions.models import (
     QuestionTemplate,
     QuestionGenerationJob,
-    GeneratedQuestion
+    GeneratedQuestion,
+    SyllabusConfig
 )
 from app.modules.questions.schemas import (
     QuestionTemplateCreate,
@@ -366,8 +368,45 @@ class QuestionGenerationService:
         return questions, total
     
     @staticmethod
+    def get_question_stats(db: Session, template_id: Optional[int] = None) -> List[dict]:
+        """
+        Get statistics for generated questions, grouped by template.
+        """
+        query = db.query(
+            GeneratedQuestion.template_id,
+            func.count(GeneratedQuestion.generated_question_id).label('count')
+        )
+        
+        if template_id:
+            query = query.filter(GeneratedQuestion.template_id == template_id)
+            
+        return query.group_by(GeneratedQuestion.template_id).all()
+    
+    @staticmethod
     def get_generated_question(db: Session, question_id: int) -> Optional[GeneratedQuestion]:
         """Get a single generated question by ID"""
         return db.query(GeneratedQuestion).filter(
             GeneratedQuestion.generated_question_id == question_id
         ).first()
+
+
+class SyllabusService:
+    @staticmethod
+    def get_config(db: Session, grade_level: int) -> Optional[models.SyllabusConfig]:
+        return db.query(models.SyllabusConfig).filter(models.SyllabusConfig.grade_level == grade_level).first()
+
+    @staticmethod
+    def save_config(db: Session, grade_level: int, config_data: List[Dict]) -> models.SyllabusConfig:
+        existing = SyllabusService.get_config(db, grade_level)
+        if existing:
+            existing.config = config_data
+            db.commit()
+            db.refresh(existing)
+            return existing
+        else:
+            new_config = models.SyllabusConfig(grade_level=grade_level, config=config_data)
+            db.add(new_config)
+            db.commit()
+            db.refresh(new_config)
+            return new_config
+

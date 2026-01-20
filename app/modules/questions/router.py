@@ -355,6 +355,40 @@ def get_generation_job(
 # Generated Questions Endpoints
 # ============================================================================
 
+@questions_router.get("/stats", response_model=schemas.APIResponse)
+def get_question_stats(
+    template_id: Optional[int] = Query(None, description="Filter by template ID"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get statistics for generated questions.
+    Returns count of questions per template.
+    """
+    try:
+        stats = service.QuestionGenerationService.get_question_stats(db=db, template_id=template_id)
+        
+        # Format response
+        data = [
+            {"template_id": s.template_id, "count": s.count}
+            for s in stats
+        ]
+        
+        # Enrich with template names if possible (optimization: fetch templates in one go or join)
+        # For now, client can join or we can do a join query in service.
+        # Let's keep it simple: just IDs and counts. Client likely has templates loaded or can fetch.
+        
+        return schemas.APIResponse(
+            success=True,
+            data=data,
+            error=None
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "INTERNAL_ERROR", "message": str(e)}
+        )
+
+
 @questions_router.get("", response_model=schemas.APIResponse)
 def list_generated_questions(
     template_id: Optional[int] = Query(None, description="Filter by template ID"),
@@ -416,3 +450,52 @@ def get_generated_question(
         data=schemas.GeneratedQuestionDetailResponse.from_orm(question).dict(),
         error=None
     )
+
+
+# ============================================================================
+# Syllabus Configuration Endpoints
+# ============================================================================
+
+@router.get("/syllabus-config/{grade_level}", response_model=schemas.APIResponse)
+def get_syllabus_config(
+    grade_level: int,
+    db: Session = Depends(get_db)
+):
+    """Get syllabus configuration for a grade"""
+    config = service.SyllabusService.get_config(db=db, grade_level=grade_level)
+    
+    if not config:
+        return schemas.APIResponse(success=True, data=None, error=None)
+        
+    return schemas.APIResponse(
+        success=True,
+        data=schemas.SyllabusConfigResponse.from_orm(config).dict(),
+        error=None
+    )
+
+@router.post("/syllabus-config/{grade_level}", response_model=schemas.APIResponse)
+def save_syllabus_config(
+    grade_level: int,
+    config_data: schemas.SyllabusConfigCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Save syllabus configuration for a grade"""
+    try:
+        config = service.SyllabusService.save_config(
+            db=db, 
+            grade_level=grade_level, 
+            config_data=config_data.config
+        )
+        
+        return schemas.APIResponse(
+            success=True,
+            data=schemas.SyllabusConfigResponse.from_orm(config).dict(),
+            error=None
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "INTERNAL_ERROR", "message": str(e)}
+        )
+

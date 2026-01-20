@@ -9,7 +9,7 @@ from uuid import UUID
 
 class QuestionTemplateCreate(BaseModel):
     """Schema for creating a new question template"""
-    grade_level: int = Field(..., ge=1, le=12, description="Grade level (1-12) for student assignment")
+    grade_level: List[int] = Field(..., description="List of grade levels (1-12) for student assignment")
     module: str = Field(..., min_length=1, max_length=100, description="Module name (e.g., 'Math Skill')")
     category: str = Field(..., min_length=1, max_length=100, description="Category (e.g., 'Fundamentals')")
     topic: str = Field(..., min_length=1, max_length=100, description="Topic (e.g., 'Addition')")
@@ -34,7 +34,7 @@ class QuestionTemplateCreate(BaseModel):
 
 class QuestionTemplateUpdate(BaseModel):
     """Schema for updating an existing question template"""
-    grade_level: Optional[int] = Field(None, ge=1, le=12)
+    grade_level: Optional[List[int]] = Field(None)
     module: Optional[str] = Field(None, min_length=1, max_length=100)
     category: Optional[str] = Field(None, min_length=1, max_length=100)
     topic: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -67,7 +67,7 @@ class QuestionGenerationJobCreate(BaseModel):
 class QuestionTemplateResponse(BaseModel):
     """Schema for question template response"""
     template_id: int
-    grade_level: int
+    grade_level: List[int]
     module: str
     category: str
     topic: str
@@ -211,3 +211,20 @@ class ErrorDetail(BaseModel):
     """Error detail structure"""
     code: str
     message: str
+
+# ==========================================
+# Syllabus Config Schemas
+# ==========================================
+
+class SyllabusConfigBase(BaseModel):
+    config: List[Dict[str, Any]] = Field(..., description="Ordered list of categories and topics")
+
+class SyllabusConfigCreate(SyllabusConfigBase):
+    pass
+
+class SyllabusConfigResponse(SyllabusConfigBase):
+    grade_level: int
+    updated_at: datetime
+    
+    class Config:
+        orm_mode = True
