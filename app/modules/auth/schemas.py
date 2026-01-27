@@ -37,3 +37,14 @@ class UserResponse(BaseModel):
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
+
+class UploaderCreate(BaseModel):
+    name: str
+
+class UploaderLogin(BaseModel):
+    username: str
+    access_code: str
+
+class UploaderResponse(BaseModel):
+    username: str
+    access_code: str

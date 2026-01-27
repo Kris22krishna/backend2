@@ -1,0 +1,28 @@
+--- USERS ---
+ID: 9b0e3c88-aa3c-4760-b7e1-a12499835eff, Name: manu, Type: teacher
+ID: 38a74f9a-1e60-48cc-aff7-ef7247b3f493, Name: Abhishek S, Type: student
+ID: 9464a09f-f3d0-4a0f-b292-501c073fe2df, Name: man man, Type: student
+ID: 46cce611-47ab-4d54-b2b3-f2f3b3fdbc7b, Name: raj, Type: student
+ID: 6faf34c3-a005-40c0-b347-9bd41ff27afe, Name: System Admin, Type: admin
+ID: 3017b473-6f91-43a6-98da-aca60057faac, Name: string string, Type: student
+ID: 7eceb1f5-3ec9-4ae0-a5d2-6814bb29012d, Name: Test User, Type: teacher
+ID: 3c886b7b-5cb4-4b5e-9a8a-4f913d72de29, Name: a, Type: guest
+ID: 3e621a58-b028-4246-a089-86940531d582, Name: D, Type: student
+ID: e0f7c296-e0ea-45ca-bf02-0b9716bb2580, Name: Admin User, Type: admin
+ID: 78589f05-0f35-4f92-9831-2b5ef47dd27c, Name: Admin User, Type: admin
+ID: 86701de4-815f-414d-a69f-af5eda99debc, Name: Admin User, Type: admin
+ID: 77dfd0ee-db3b-4695-b306-85bb5a4415e8, Name: Admin User, Type: admin
+ID: 31f46d25-f2ab-4d13-a012-e3dda7408284, Name: Test Upload, Type: uploader
+ID: 894122b7-ad7a-425c-bac5-08d86b59e7ff, Name: Test API Fix, Type: uploader
+ID: 83ab8d71-fefd-4cf1-977b-f972ab8d55c2, Name: Abhi , Type: uploader
+ID: 621c5f41-192a-4c6f-ad2e-3ae14792556a, Name: VerifyDashboard, Type: uploader
+ID: 1a6b4f2c-c3a4-4c59-b9f7-2a624e9aec38, Name: test_uploader, Type: uploader
+ID: e56c57ed-1d2a-4210-845d-7da062e5ce07, Name: Abhi , Type: uploader
+
+--- TEMPLATES ---
+ID: 5, Creator: 6faf34c3-a005-40c0-b347-9bd41ff27afe, Status: active
+ID: 1, Creator: 6faf34c3-a005-40c0-b347-9bd41ff27afe, Status: inactive
+ID: 4, Creator: 6faf34c3-a005-40c0-b347-9bd41ff27afe, Status: inactive
+ID: 3, Creator: 6faf34c3-a005-40c0-b347-9bd41ff27afe, Status: inactive
+ID: 2, Creator: None, Status: inactive
+ID: 6, Creator: 6faf34c3-a005-40c0-b347-9bd41ff27afe, Status: active

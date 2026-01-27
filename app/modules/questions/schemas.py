@@ -113,7 +113,7 @@ class PreviewSample(BaseModel):
     answer_value: str
     variables_used: Optional[Dict[str, Any]] = None
     question_type: Optional[str] = None  # 'mcq', 'user_input', etc.
-    options: Optional[List[Dict[str, str]]] = None  # For MCQ questions
+    options: Optional[List[Any]] = None  # For MCQ questions (can be strings or numbers)
     topic: Optional[str] = None  # Question topic if provided
 
 

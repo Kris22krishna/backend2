@@ -23,6 +23,7 @@ from app.modules.questions.schemas import (
     QuestionGenerationJobCreate
 )
 from app.modules.questions.executor import executor, CodeExecutionError, CodeTimeoutError
+from app.modules.auth.models import User
 
 
 class QuestionTemplateService:
@@ -71,6 +72,7 @@ class QuestionTemplateService:
     @staticmethod
     def list_templates(
         db: Session,
+        current_user: Optional[User] = None, # Add current_user
         grade_level: Optional[int] = None,
         module: Optional[str] = None,
         category: Optional[str] = None,
@@ -82,6 +84,11 @@ class QuestionTemplateService:
         """List templates with filtering and pagination"""
         
         query = db.query(QuestionTemplate)
+
+        # Apply Role-Based Access Control
+        # Apply User Isolation (Show only own data)
+        if current_user:
+            query = query.filter(QuestionTemplate.created_by_user_id == current_user.user_id)
         
         # Apply filters
         if grade_level:
@@ -363,6 +370,7 @@ class QuestionGenerationService:
     @staticmethod
     def list_generated_questions(
         db: Session,
+        current_user: Optional[User] = None,
         template_id: Optional[int] = None,
         job_id: Optional[int] = None,
         limit: int = 50,
@@ -371,7 +379,10 @@ class QuestionGenerationService:
     ) -> tuple[List[GeneratedQuestion], int]:
         """List generated questions with filtering and pagination"""
         
-        query = db.query(GeneratedQuestion)
+        if current_user:
+            query = db.query(GeneratedQuestion).join(QuestionTemplate).filter(QuestionTemplate.created_by_user_id == current_user.user_id)
+        else:
+            query = db.query(GeneratedQuestion)
         
         # Apply filters
         if template_id:
@@ -391,7 +402,7 @@ class QuestionGenerationService:
         return questions, total
     
     @staticmethod
-    def get_question_stats(db: Session, template_id: Optional[int] = None) -> List[dict]:
+    def get_question_stats(db: Session, template_id: Optional[int] = None, current_user: Optional[User] = None) -> List[dict]:
         """
         Get statistics for generated questions, grouped by template.
         """
@@ -400,6 +411,9 @@ class QuestionGenerationService:
             func.count(GeneratedQuestion.generated_question_id).label('count')
         )
         
+        if current_user:
+            query = query.join(QuestionTemplate).filter(QuestionTemplate.created_by_user_id == current_user.user_id)
+
         if template_id:
             query = query.filter(GeneratedQuestion.template_id == template_id)
             
@@ -434,7 +448,7 @@ class SyllabusService:
             return new_config
 
     @staticmethod
-    def get_grade_syllabus(db: Session, grade_level: int) -> Dict[str, Any]:
+    def get_grade_syllabus(db: Session, grade_level: int, current_user: Optional[User] = None) -> Dict[str, Any]:
         """
         Get the complete hierarchical syllabus for a grade.
         Merges saved SyllabusConfig with current active QuestionTemplates.
@@ -442,11 +456,13 @@ class SyllabusService:
         # 1. Fetch Config
         config_record = SyllabusService.get_config(db, grade_level)
         
-        # 2. Fetch Active Templates
-        # Fetching all active templates first is safer/easier for now
-        all_templates = db.query(QuestionTemplate).filter(
-            QuestionTemplate.status == "active"
-        ).all()
+        # 2. Fetch Active Templates (Filtered by User)
+        query = db.query(QuestionTemplate).filter(QuestionTemplate.status == "active")
+        
+        if current_user:
+            query = query.filter(QuestionTemplate.created_by_user_id == current_user.user_id)
+            
+        all_templates = query.all()
         
         grade_templates = []
         for t in all_templates:

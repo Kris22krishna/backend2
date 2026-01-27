@@ -72,7 +72,8 @@ def list_templates(
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(50, ge=1, le=100, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user) # Add current_user
 ):
     """
     List question templates with filtering and pagination.
@@ -84,6 +85,7 @@ def list_templates(
     try:
         templates, total = service.QuestionTemplateService.list_templates(
             db=db,
+            current_user=current_user, # Pass current_user
             grade_level=grade_level,
             module=module,
             category=category,
@@ -271,6 +273,52 @@ def preview_template(
         )
 
 
+@router.get("/{template_id}/practice", response_model=schemas.APIResponse)
+def get_practice_questions(
+    template_id: int,
+    count: int = Query(default=10, ge=1, le=20, description="Number of questions to generate"),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate practice questions for a template (PUBLIC - no auth required).
+    
+    This endpoint is for students to practice with dynamically generated questions.
+    It generates fresh questions on-the-fly without storing them.
+    """
+    try:
+        preview_result = service.QuestionTemplateService.preview_template(
+            db=db,
+            template_id=template_id,
+            count=count
+        )
+        
+        return schemas.APIResponse(
+            success=True,
+            data=schemas.QuestionTemplatePreviewResponse(**preview_result).dict(),
+            error=None
+        )
+    
+    except ValueError as e:
+        if "not found" in str(e).lower():
+            return schemas.APIResponse(
+                success=False,
+                data=None,
+                error=schemas.ErrorDetail(
+                    code="TEMPLATE_NOT_FOUND",
+                    message=str(e)
+                ).dict()
+            )
+        else:
+            return schemas.APIResponse(
+                success=False,
+                data=None,
+                error=schemas.ErrorDetail(
+                    code="GENERATION_ERROR",
+                    message=str(e)
+                ).dict()
+            )
+
+
 # ============================================================================
 # Question Generation Endpoints
 # ============================================================================
@@ -358,14 +406,15 @@ def get_generation_job(
 @questions_router.get("/stats", response_model=schemas.APIResponse)
 def get_question_stats(
     template_id: Optional[int] = Query(None, description="Filter by template ID"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     Get statistics for generated questions.
     Returns count of questions per template.
     """
     try:
-        stats = service.QuestionGenerationService.get_question_stats(db=db, template_id=template_id)
+        stats = service.QuestionGenerationService.get_question_stats(db=db, template_id=template_id, current_user=current_user)
         
         # Format response
         data = [
@@ -399,7 +448,7 @@ def list_generated_questions(
     db: Session = Depends(get_db)
 ):
     """
-    List generated questions with filtering and pagination.
+    List generated questions with filtering and pagination (PUBLIC - no auth required).
     
     - Filter by template_id or job_id
     - Paginated results (max 100 per page)
@@ -407,6 +456,7 @@ def list_generated_questions(
     """
     questions, total = service.QuestionGenerationService.list_generated_questions(
         db=db,
+        current_user=None,
         template_id=template_id,
         job_id=job_id,
         limit=limit,
@@ -509,11 +559,11 @@ def get_grade_syllabus(
     db: Session = Depends(get_db)
 ):
     """
-    Get the complete hierarchical syllabus for a grade.
+    Get the complete hierarchical syllabus for a grade (PUBLIC - no auth required).
     Matches the specific JSON structure requested by frontend.
     """
     try:
-        data = service.SyllabusService.get_grade_syllabus(db=db, grade_level=grade_level)
+        data = service.SyllabusService.get_grade_syllabus(db=db, grade_level=grade_level, current_user=None)
         return schemas.APIResponse(success=True, data=data, error=None)
     except Exception as e:
         raise HTTPException(
