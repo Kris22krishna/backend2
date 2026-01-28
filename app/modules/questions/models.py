@@ -109,3 +109,28 @@ class SyllabusConfig(Base):
     config = Column(JSON, nullable=False)            # JSON structure of ordered categories/topics
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
+
+class QuestionGeneration(Base):
+    """
+    New template model matching the question_generation database table.
+    Links to skills table for categorization.
+    """
+    __tablename__ = "question_generation"
+    
+    template_id = Column(Integer, primary_key=True, autoincrement=True)
+    skill_id = Column(Integer, nullable=False, index=True)  # References skills table
+    
+    # Denormalized from skill for quick access
+    grade = Column(Integer, nullable=False, index=True)
+    category = Column(Text, nullable=False)
+    skill_name = Column(Text, nullable=False)
+    
+    # Question Configuration
+    type = Column(Text, nullable=False)              # "MCQ", "User Input", "Image Based", "Code Based"
+    format = Column(Integer, nullable=False)         # Format identifier
+    difficulty = Column(Text, nullable=False)        # "Easy", "Medium", "Hard"
+    
+    # Code Templates (JSX/JavaScript code)
+    question_template = Column(Text, nullable=False)
+    answer_template = Column(Text, nullable=False)
+    solution_template = Column(Text, nullable=False)

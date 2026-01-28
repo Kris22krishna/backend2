@@ -572,3 +572,224 @@ def get_grade_syllabus(
         )
 
 
+# ============================================================================
+# New Question Generation Template Endpoints (v2)
+# ============================================================================
+
+from app.modules.questions.models import QuestionGeneration
+
+new_templates_router = APIRouter(prefix="/question-generation-templates", tags=["Question Generation Templates (v2)"])
+
+
+@new_templates_router.post("", response_model=schemas.APIResponse, status_code=status.HTTP_201_CREATED)
+def create_generation_template(
+    template_data: schemas.QuestionGenerationCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Create a new question generation template (v2 with skill-based design).
+    """
+    try:
+        # Check for existing templates with same skill_id and type to auto-increment format
+        last_template = db.query(QuestionGeneration).filter(
+            QuestionGeneration.skill_id == template_data.skill_id,
+            QuestionGeneration.type == template_data.type
+        ).order_by(QuestionGeneration.format.desc()).first()
+        
+        new_format = template_data.format
+        if last_template:
+            new_format = last_template.format + 1
+        elif new_format is None or new_format == 0:
+             # Default to 1 if not provided and no history
+             new_format = 1
+             
+        # Create dict from pydantic model and override format
+        data_dict = template_data.model_dump()
+        data_dict['format'] = new_format
+        
+        template = QuestionGeneration(**data_dict)
+        db.add(template)
+        db.commit()
+        db.refresh(template)
+        
+        return schemas.APIResponse(
+            success=True,
+            data=schemas.QuestionGenerationResponse.model_validate(template).model_dump(),
+            error=None
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "INTERNAL_ERROR", "message": str(e)}
+        )
+
+
+
+
+@new_templates_router.post("/preview", response_model=schemas.APIResponse)
+def preview_generation_template(
+    body: schemas.QuestionGenerationCreate,
+    count: int = Query(3, ge=1, le=5),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Preview a v2 template by executing its Python scripts.
+    Accepts full template data (no need to save first).
+    """
+    try:
+        preview_result = service.QuestionGenerationService.preview_generation_v2(
+            db=db,
+            question_code=body.question_template,
+            answer_code=body.answer_template,
+            solution_code=body.solution_template,
+            count=count
+        )
+        
+        return schemas.APIResponse(
+            success=True,
+            data=preview_result,
+            error=None
+        )
+    except ValueError as e:
+        return schemas.APIResponse(
+            success=False,
+            data=None,
+            error=schemas.ErrorDetail(
+                code="CODE_EXECUTION_ERROR",
+                message=str(e)
+            ).dict()
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "INTERNAL_ERROR", "message": str(e)}
+        )
+
+
+@new_templates_router.get("", response_model=schemas.APIResponse)
+def list_generation_templates(
+    skill_id: Optional[int] = Query(None, description="Filter by skill ID"),
+    grade: Optional[int] = Query(None, ge=1, le=12, description="Filter by grade"),
+    difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
+    limit: int = Query(50, ge=1, le=100, description="Page size"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    db: Session = Depends(get_db)
+):
+    """
+    List question generation templates (v2).
+    """
+    try:
+        query = db.query(QuestionGeneration)
+        
+        if skill_id:
+            query = query.filter(QuestionGeneration.skill_id == skill_id)
+        if grade:
+            query = query.filter(QuestionGeneration.grade == grade)
+        if difficulty:
+            query = query.filter(QuestionGeneration.difficulty == difficulty)
+        
+        total = query.count()
+        templates = query.offset(offset).limit(limit).all()
+        
+        return schemas.APIResponse(
+            success=True,
+            data={
+                "templates": [schemas.QuestionGenerationResponse.model_validate(t).model_dump() for t in templates],
+                "total": total,
+                "limit": limit,
+                "offset": offset
+            },
+            error=None
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "INTERNAL_ERROR", "message": str(e)}
+        )
+
+
+@new_templates_router.get("/{template_id}", response_model=schemas.APIResponse)
+def get_generation_template(
+    template_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get a single generation template by ID (v2).
+    """
+    template = db.query(QuestionGeneration).filter(QuestionGeneration.template_id == template_id).first()
+    
+    if not template:
+        return schemas.APIResponse(
+            success=False,
+            data=None,
+            error=schemas.ErrorDetail(
+                code="TEMPLATE_NOT_FOUND",
+                message=f"Template with ID {template_id} not found"
+            ).dict()
+        )
+    
+    return schemas.APIResponse(
+        success=True,
+        data=schemas.QuestionGenerationResponse.model_validate(template).model_dump(),
+        error=None
+    )
+
+
+@new_templates_router.patch("/{template_id}", response_model=schemas.APIResponse)
+def update_generation_template(
+    template_id: int,
+    update_data: schemas.QuestionGenerationUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Update a question generation template (v2).
+    """
+    template = db.query(QuestionGeneration).filter(QuestionGeneration.template_id == template_id).first()
+    
+    if not template:
+        return schemas.APIResponse(
+            success=False,
+            data=None,
+            error=schemas.ErrorDetail(
+                code="TEMPLATE_NOT_FOUND",
+                message=f"Template with ID {template_id} not found"
+            ).dict()
+        )
+    
+    update_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(template, key, value)
+    
+    db.commit()
+    db.refresh(template)
+    
+    return schemas.APIResponse(
+        success=True,
+        data=schemas.QuestionGenerationResponse.model_validate(template).model_dump(),
+        error=None
+    )
+
+
+@new_templates_router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_generation_template(
+    template_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Delete a question generation template (v2).
+    """
+    template = db.query(QuestionGeneration).filter(QuestionGeneration.template_id == template_id).first()
+    
+    if not template:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "TEMPLATE_NOT_FOUND", "message": f"Template with ID {template_id} not found"}
+        )
+    
+    db.delete(template)
+    db.commit()
+    return None

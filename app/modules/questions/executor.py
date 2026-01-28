@@ -176,6 +176,78 @@ class QuestionExecutor:
         
         return safe_globals
     
+    
+    def execute_sequential(self, scripts: list[str]) -> Dict[str, Any]:
+        """
+        Execute a sequence of scripts in the same safe global environment.
+        Useful for v2 generation where question, answer, and solution are separate scripts 
+        sharing the same variables.
+        
+        Args:
+            scripts: List of Python code strings to execute in order
+            
+        Returns:
+            Dict with 'question', 'answer', 'solution' and other metadata
+        """
+        # Validate all scripts first
+        for i, code in enumerate(scripts):
+            if not code.strip():
+                continue
+            is_valid, error = self.validate_code_syntax(code)
+            if not is_valid:
+                raise CodeExecutionError(f"Syntax error in script {i+1}: {error}")
+        
+        # Prepare safe execution environment
+        safe_globals = self._create_safe_globals()
+        
+        # Add a specific function to allow scripts to explicitly export data if they want
+        # though we will mostly rely on checking globals
+        output_data = {}
+        
+        def execute_all():
+            for code in scripts:
+                if not code.strip():
+                    continue
+                    
+                try:
+                    byte_code = compile_restricted(code, '<script>', 'exec')
+                    exec(byte_code, safe_globals)
+                except Exception as e:
+                    raise CodeExecutionError(f"Execution error: {str(e)}")
+            
+            # Extract results from globals
+            # We look for specific variable names that the scripts should set
+            # Or specialized functions provided by the v2 format
+            
+            # Standard fields request by v2
+            result = {
+                'question': safe_globals.get('question'),
+                'answer': safe_globals.get('answer'),
+                'solution': safe_globals.get('solution'),
+                'options': safe_globals.get('options'),
+                'type': safe_globals.get('type'),
+                'topic': safe_globals.get('topic'),
+                'variables': safe_globals.get('variables', {})
+            }
+            
+            # If standard variables aren't set, checks if they return JSX/String from last expression? 
+            # No, `exec` doesn't return value. Current requirement is to setting variables.
+            # We can support an explicit `generate()` like v1, but sequential scripts usually imply top-level execution.
+            
+            # Helper: If question is missing, check if 'question_text' or similar exists, or maybe they just set 'output'
+            
+            # Clean up None values
+            return {k: v for k, v in result.items() if v is not None}
+
+        try:
+            return self._run_with_timeout(execute_all, self.TIMEOUT_SECONDS)
+        except CodeTimeoutError:
+            raise
+        except CodeExecutionError:
+            raise
+        except Exception as e:
+            raise CodeExecutionError(f"Sequential execution error: {str(e)}")
+
     def execute_generator(self, code: str) -> Dict[str, Any]:
         """
         Execute dynamic_question code to generate a question.

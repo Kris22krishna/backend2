@@ -229,6 +229,51 @@ class QuestionTemplateService:
 class QuestionGenerationService:
     """Service for generating questions from templates"""
     
+    
+    @staticmethod
+    def preview_generation_v2(
+        db: Session, 
+        question_code: str,
+        answer_code: str,
+        solution_code: str,
+        count: int = 3
+    ) -> Dict[str, Any]:
+        """
+        Generate preview samples for v2 template (sequential python scripts).
+        """
+        samples = []
+        for _ in range(count):
+            try:
+                # Execute sequentially
+                result = executor.execute_sequential([question_code, answer_code, solution_code])
+                
+                # Format sample
+                sample = {
+                    "question_html": str(result.get('question', '')),
+                    "answer_value": str(result.get('answer', '')),
+                    "solution_html": str(result.get('solution', '')),
+                    "variables_used": result.get('variables', {})
+                }
+                
+                # Add optional fields
+                if 'options' in result:
+                    sample['options'] = result['options']
+                    sample['question_type'] = result.get('type', 'mcq')
+                else:
+                    sample['question_type'] = result.get('type', 'user_input')
+                
+                samples.append(sample)
+                
+            except (CodeExecutionError, CodeTimeoutError) as e:
+                # Don't fail completely if one sample fails, but maybe log it?
+                # For preview, it's better to show the error
+                raise ValueError(f"Preview failed: {str(e)}")
+        
+        return {
+            "preview_samples": samples,
+            # No persistent storage updates for this ephemeral preview
+        }
+
     @staticmethod
     def create_generation_job(
         db: Session,

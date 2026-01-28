@@ -228,3 +228,53 @@ class SyllabusConfigResponse(SyllabusConfigBase):
     
     class Config:
         orm_mode = True
+
+
+# ============================================================================
+# New Question Generation Schemas (matching new DB schema)
+# ============================================================================
+
+class QuestionGenerationCreate(BaseModel):
+    """Schema for creating a new question generation template"""
+    skill_id: int
+    grade: int
+    category: str
+    skill_name: str
+    type: str = Field(..., description="Question type: MCQ, User Input, Image Based, Code Based")
+    format: int = Field(default=1, description="Format identifier")
+    difficulty: str = Field(..., description="Easy, Medium, Hard")
+    question_template: str = Field(..., min_length=1, description="JSX code for question")
+    answer_template: str = Field(..., min_length=1, description="JSX code for answer")
+    solution_template: str = Field(..., min_length=1, description="JSX code for solution")
+
+
+class QuestionGenerationUpdate(BaseModel):
+    """Schema for updating a question generation template"""
+    skill_id: Optional[int] = None
+    grade: Optional[int] = None
+    category: Optional[str] = None
+    skill_name: Optional[str] = None
+    type: Optional[str] = None
+    format: Optional[int] = None
+    difficulty: Optional[str] = None
+    question_template: Optional[str] = None
+    answer_template: Optional[str] = None
+    solution_template: Optional[str] = None
+
+
+class QuestionGenerationResponse(BaseModel):
+    """Schema for question generation template response"""
+    template_id: int
+    skill_id: int
+    grade: int
+    category: str
+    skill_name: str
+    type: str
+    format: int
+    difficulty: str
+    question_template: str
+    answer_template: str
+    solution_template: str
+    
+    class Config:
+        from_attributes = True

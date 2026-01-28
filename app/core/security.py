@@ -6,7 +6,7 @@ def create_access_token(user_id: str, tenant_id: str):
     payload = {
         "sub": user_id,
         "tenant_id": tenant_id,
-        "exp": datetime.utcnow() + timedelta(minutes=15),
+        "exp": datetime.utcnow() + timedelta(minutes=60),
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
 
