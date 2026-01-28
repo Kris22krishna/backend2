@@ -7,3 +7,6 @@ sqlalchemy
 psycopg2-binary
 requests
 python-multipart
+RestrictedPython
+email-validator
+python-dotenv
