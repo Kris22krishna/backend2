@@ -101,6 +101,9 @@ class QuestionTemplateService:
             query = query.filter(QuestionTemplate.difficulty == difficulty)
         if status:
             query = query.filter(QuestionTemplate.status == status)
+        else:
+            # By default, exclude inactive (deleted) templates
+            query = query.filter(QuestionTemplate.status != "inactive")
         
         # Get total count
         total = query.count()

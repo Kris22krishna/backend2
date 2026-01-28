@@ -5,6 +5,7 @@ All endpoints follow SkillBuilder API standards.
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import Optional
 
 from app.db.session import get_db
@@ -204,7 +205,18 @@ def delete_template(
     - Returns 204 No Content on success
     - Returns 404 if template not found
     """
-    success = service.QuestionTemplateService.delete_template(db=db, template_id=template_id)
+    try:
+        success = service.QuestionTemplateService.delete_template(db=db, template_id=template_id)
+    except IntegrityError:
+         raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "TEMPLATE_IN_USE", "message": "Cannot delete template because it is in use."}
+        )
+    except Exception as e:
+         raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "INTERNAL_ERROR", "message": str(e)}
+        )
     
     if not success:
         raise HTTPException(
@@ -790,6 +802,19 @@ def delete_generation_template(
             detail={"code": "TEMPLATE_NOT_FOUND", "message": f"Template with ID {template_id} not found"}
         )
     
-    db.delete(template)
-    db.commit()
+    try:
+        db.delete(template)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "TEMPLATE_IN_USE", "message": "Cannot delete template because it is in use by generated questions or jobs."}
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "INTERNAL_ERROR", "message": str(e)}
+        )
     return None
