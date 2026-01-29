@@ -71,7 +71,7 @@ def list_templates(
     category: Optional[str] = Query(None, description="Filter by category"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
     status: Optional[str] = Query(None, description="Filter by status"),
-    limit: int = Query(50, ge=1, le=100, description="Page size"),
+    limit: int = Query(50, ge=1, le=1000, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user) # Add current_user
@@ -84,6 +84,7 @@ def list_templates(
     - Returns total count
     """
     try:
+        print(f"DEBUG: V1 list_templates called grade={grade_level}")
         templates, total = service.QuestionTemplateService.list_templates(
             db=db,
             current_user=current_user, # Pass current_user
@@ -95,6 +96,7 @@ def list_templates(
             limit=limit,
             offset=offset
         )
+        print(f"DEBUG: V1 found {total} templates")
         
         return schemas.APIResponse(
             success=True,
@@ -619,6 +621,8 @@ def create_generation_template(
         # Create dict from pydantic model and override format
         data_dict = template_data.model_dump()
         data_dict['format'] = new_format
+        if current_user:
+            data_dict['created_by_user_id'] = current_user.user_id
         
         template = QuestionGeneration(**data_dict)
         db.add(template)
@@ -685,9 +689,10 @@ def list_generation_templates(
     skill_id: Optional[int] = Query(None, description="Filter by skill ID"),
     grade: Optional[int] = Query(None, ge=1, le=12, description="Filter by grade"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
-    limit: int = Query(50, ge=1, le=100, description="Page size"),
+    limit: int = Query(50, ge=1, le=1000, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """
     List question generation templates (v2).
@@ -695,15 +700,25 @@ def list_generation_templates(
     try:
         query = db.query(QuestionGeneration)
         
+        if current_user:
+            print(f"DEBUG: list_generation_templates user={current_user.user_id} type={current_user.user_type}")
+        else:
+             print("DEBUG: list_generation_templates user=None")
+             
+        if current_user and current_user.user_type != 'admin':
+            query = query.filter(QuestionGeneration.created_by_user_id == current_user.user_id)
+
         if skill_id:
             query = query.filter(QuestionGeneration.skill_id == skill_id)
         if grade:
+            print(f"DEBUG: Filtering by grade={grade}")
             query = query.filter(QuestionGeneration.grade == grade)
         if difficulty:
             query = query.filter(QuestionGeneration.difficulty == difficulty)
         
         total = query.count()
-        templates = query.offset(offset).limit(limit).all()
+        print(f"DEBUG: Found {total} templates (before paging)")
+        templates = query.order_by(QuestionGeneration.template_id.desc()).offset(offset).limit(limit).all()
         
         return schemas.APIResponse(
             success=True,

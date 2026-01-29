@@ -134,3 +134,6 @@ class QuestionGeneration(Base):
     question_template = Column(Text, nullable=False)
     answer_template = Column(Text, nullable=False)
     solution_template = Column(Text, nullable=False)
+    
+    # Metadata
+    created_by_user_id = Column(UUID(as_uuid=True), nullable=True, index=True)

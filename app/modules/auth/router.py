@@ -301,7 +301,7 @@ def list_uploaders(
     """
     List all uploaders with their template counts. Admin only.
     """
-    from app.modules.questions.models import QuestionTemplate
+    from app.modules.questions.models import QuestionTemplate, QuestionGeneration
 
     if current_user.user_type != "admin":
         raise HTTPException(
@@ -314,10 +314,16 @@ def list_uploaders(
     
     results = []
     for u in uploaders:
-        # Count templates
-        count = db.query(QuestionTemplate).filter(
+        # Count templates (V1 + V2)
+        count_v1 = db.query(QuestionTemplate).filter(
             QuestionTemplate.created_by_user_id == u.user_id
         ).count()
+        
+        count_v2 = db.query(QuestionGeneration).filter(
+            QuestionGeneration.created_by_user_id == u.user_id
+        ).count()
+        
+        count = count_v1 + count_v2
         
         # Get username from credential
         cred = db.query(Credential).filter(
