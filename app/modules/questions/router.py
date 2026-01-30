@@ -726,8 +726,7 @@ def list_generation_templates(
              query = query.filter(
                  or_(
                      QuestionGeneration.skill_name.ilike(search_term),
-                     QuestionGeneration.category.ilike(search_term),
-                     QuestionGeneration.sub_skill.ilike(search_term)
+                     QuestionGeneration.category.ilike(search_term)
                  )
              )
         
