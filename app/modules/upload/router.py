@@ -23,6 +23,9 @@ def get_storage_client():
     json_key_str = settings.GOOGLE_CLOUD_KEY_JSON
     if json_key_str:
         try:
+            # Clean up potential extra quotes from env var (common copy-paste error)
+            json_key_str = json_key_str.strip().strip("'").strip('"')
+            
             # Parse the JSON string
             key_info = json.loads(json_key_str)
             # Create credentials object
