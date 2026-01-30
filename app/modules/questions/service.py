@@ -78,6 +78,7 @@ class QuestionTemplateService:
         category: Optional[str] = None,
         difficulty: Optional[str] = None,
         status: Optional[str] = None,
+        search: Optional[str] = None,
         limit: int = 50,
         offset: int = 0
     ) -> tuple[List[QuestionTemplate], int]:
@@ -104,6 +105,21 @@ class QuestionTemplateService:
         else:
             # By default, exclude inactive (deleted) templates
             query = query.filter(QuestionTemplate.status != "inactive")
+
+        if search:
+            from sqlalchemy import or_
+            search_term = f"%{search}%"
+            # Try to match numeric ID or text fields
+            search_filters = [
+                QuestionTemplate.topic.ilike(search_term),
+                QuestionTemplate.subtopic.ilike(search_term),
+                QuestionTemplate.module.ilike(search_term),
+                QuestionTemplate.category.ilike(search_term)
+            ]
+            if search.isdigit():
+                search_filters.append(QuestionTemplate.template_id == int(search))
+            
+            query = query.filter(or_(*search_filters))
         
         # Get total count
         total = query.count()

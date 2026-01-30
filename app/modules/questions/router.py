@@ -71,6 +71,7 @@ def list_templates(
     category: Optional[str] = Query(None, description="Filter by category"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
     status: Optional[str] = Query(None, description="Filter by status"),
+    search: Optional[str] = Query(None, description="Search term for topic, subtopic"),
     limit: int = Query(50, ge=1, le=1000, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: Session = Depends(get_db),
@@ -93,6 +94,7 @@ def list_templates(
             category=category,
             difficulty=difficulty,
             status=status,
+            search=search,
             limit=limit,
             offset=offset
         )
@@ -689,6 +691,7 @@ def list_generation_templates(
     skill_id: Optional[int] = Query(None, description="Filter by skill ID"),
     grade: Optional[int] = Query(None, ge=1, le=12, description="Filter by grade"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
+    search: Optional[str] = Query(None, description="Search term"),
     limit: int = Query(50, ge=1, le=1000, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     db: Session = Depends(get_db),
@@ -715,6 +718,18 @@ def list_generation_templates(
             query = query.filter(QuestionGeneration.grade == grade)
         if difficulty:
             query = query.filter(QuestionGeneration.difficulty == difficulty)
+        
+        if search:
+             print(f"DEBUG: Filtering V2 by search={search}")
+             from sqlalchemy import or_
+             search_term = f"%{search}%"
+             query = query.filter(
+                 or_(
+                     QuestionGeneration.skill_name.ilike(search_term),
+                     QuestionGeneration.category.ilike(search_term),
+                     QuestionGeneration.sub_skill.ilike(search_term)
+                 )
+             )
         
         total = query.count()
         print(f"DEBUG: Found {total} templates (before paging)")
