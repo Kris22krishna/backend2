@@ -28,12 +28,19 @@ def get_storage_client():
             
             # Parse the JSON string
             key_info = json.loads(json_key_str)
+
+            # Fix newlines in private key if they are escaped (common env var issue)
+            if "private_key" in key_info:
+                key_info["private_key"] = key_info["private_key"].replace("\\n", "\n")
+
             # Create credentials object
             credentials = service_account.Credentials.from_service_account_info(key_info)
             return storage.Client(credentials=credentials)
         except Exception as e:
             print(f"Error loading credentials from GOOGLE_CLOUD_KEY_JSON: {e}")
-            # Fall through to other methods
+            # Do NOT fall through if the key is present but invalid.
+            # This allows the actual error to be seen (e.g. JSONDecodeError)
+            raise HTTPException(status_code=500, detail=f"GCS Setup Error: {str(e)}")
 
     # 2. Try Local File Discovery (Legacy)
     # Only set if not already set, to avoid overwriting existing env config
