@@ -19,11 +19,16 @@ from app.modules.reports.router import router as reports_router
 from app.modules.admin.dashboard_router import router as dashboard_router
 from app.modules.skills.router import router as skills_router
 
+from fastapi.staticfiles import StaticFiles
+from app.modules.upload.router import router as upload_router
+
 app = FastAPI(
     swagger_ui_parameters={
         "persistAuthorization": True,
     }
 )
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,6 +39,7 @@ app.add_middleware(
 )
 
 api_router = APIRouter()
+api_router.include_router(upload_router, tags=["upload"])
 api_router.include_router(auth_router)
 api_router.include_router(demo_router)
 api_router.include_router(student_router)

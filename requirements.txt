@@ -11,3 +11,4 @@ python-multipart
 RestrictedPython
 email-validator
 python-dotenv
+google-cloud-storage
