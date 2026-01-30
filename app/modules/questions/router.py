@@ -723,12 +723,14 @@ def list_generation_templates(
              print(f"DEBUG: Filtering V2 by search={search}")
              from sqlalchemy import or_
              search_term = f"%{search}%"
-             query = query.filter(
-                 or_(
-                     QuestionGeneration.skill_name.ilike(search_term),
-                     QuestionGeneration.category.ilike(search_term)
-                 )
-             )
+             search_filters = [
+                 QuestionGeneration.skill_name.ilike(search_term),
+                 QuestionGeneration.category.ilike(search_term)
+             ]
+             if search.isdigit():
+                 search_filters.append(QuestionGeneration.template_id == int(search))
+             
+             query = query.filter(or_(*search_filters))
         
         total = query.count()
         print(f"DEBUG: Found {total} templates (before paging)")
