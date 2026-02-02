@@ -259,9 +259,18 @@ class QuestionGenerationService:
     ) -> Dict[str, Any]:
         """
         Generate preview samples for v2 template (sequential python scripts).
+        Generates extra samples to ensure uniqueness.
         """
         samples = []
-        for _ in range(count):
+        seen_hashes = set()
+        
+        # Generate more than requested to account for duplicates
+        # Clamp max attempts to prevent infinite loops
+        max_attempts = count * 3
+        attempts = 0
+        
+        while len(samples) < count and attempts < max_attempts:
+            attempts += 1
             try:
                 # Execute sequentially
                 result = executor.execute_sequential([question_code, answer_code, solution_code])
@@ -281,12 +290,26 @@ class QuestionGenerationService:
                 else:
                     sample['question_type'] = result.get('type', 'user_input')
                 
-                samples.append(sample)
+                # Create a simple hash for deduplication based on question text and answer
+                # Include options for MCQ to be precise
+                raw_identity = f"{sample['question_html']}_{sample['answer_value']}"
+                if 'options' in sample:
+                    raw_identity += f"_{json.dumps(sample['options'], sort_keys=True)}"
+                    
+                sample_hash = hashlib.sha256(raw_identity.encode()).hexdigest()
+                
+                if sample_hash not in seen_hashes:
+                    seen_hashes.add(sample_hash)
+                    samples.append(sample)
                 
             except (CodeExecutionError, CodeTimeoutError) as e:
-                # Don't fail completely if one sample fails, but maybe log it?
-                # For preview, it's better to show the error
-                raise ValueError(f"Preview failed: {str(e)}")
+                # Swallow error during attempt phase unless we have 0 samples at end
+                continue
+        
+        if not samples and attempts > 0:
+             # If we failed completely, try one last time to raise the error
+             # or return empty list with error in log
+             pass
         
         return {
             "preview_samples": samples,

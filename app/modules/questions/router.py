@@ -780,6 +780,57 @@ def get_generation_template(
     )
 
 
+@new_templates_router.get("/by-skill/{skill_id}/practice", response_model=schemas.APIResponse)
+def get_practice_questions_by_skill(
+    skill_id: int,
+    count: int = Query(default=5, ge=1, le=20, description="Number of questions to generate"),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate practice questions for a specific skill (PUBLIC/STUDENT).
+    Finds the latest active v2 template for the skill and generates questions.
+    """
+    # Find latest template for this skill
+    # We order by template_id desc to get the most recently created one
+    template = db.query(QuestionGeneration).filter(
+        QuestionGeneration.skill_id == skill_id
+    ).order_by(QuestionGeneration.template_id.desc()).first()
+    
+    if not template:
+        return schemas.APIResponse(
+            success=False,
+            data=None,
+            error=schemas.ErrorDetail(
+                code="TEMPLATE_NOT_FOUND",
+                message=f"No practice content found for skill ID {skill_id}"
+            ).dict()
+        )
+        
+    try:
+        preview_result = service.QuestionGenerationService.preview_generation_v2(
+            db=db,
+            question_code=template.question_template,
+            answer_code=template.answer_template,
+            solution_code=template.solution_template,
+            count=count
+        )
+        
+        return schemas.APIResponse(
+            success=True,
+            data=preview_result,
+            error=None
+        )
+    except Exception as e:
+        return schemas.APIResponse(
+            success=False,
+            data=None,
+            error=schemas.ErrorDetail(
+                code="GENERATION_ERROR",
+                message=str(e)
+            ).dict()
+        )
+
+
 @new_templates_router.patch("/{template_id}", response_model=schemas.APIResponse)
 def update_generation_template(
     template_id: int,
