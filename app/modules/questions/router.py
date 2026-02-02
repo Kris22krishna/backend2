@@ -784,19 +784,19 @@ def get_generation_template(
 def get_practice_questions_by_skill(
     skill_id: int,
     count: int = Query(default=5, ge=1, le=20, description="Number of questions to generate"),
+    type: Optional[str] = Query(None, description="Preferred format: MCQ or User Input"),
     db: Session = Depends(get_db)
 ):
     """
     Generate practice questions for a specific skill (PUBLIC/STUDENT).
     Finds the latest active v2 template for the skill and generates questions.
     """
-    # Find latest template for this skill
-    # We order by template_id desc to get the most recently created one
-    template = db.query(QuestionGeneration).filter(
+    # Find templates for this skill
+    templates = db.query(QuestionGeneration).filter(
         QuestionGeneration.skill_id == skill_id
-    ).order_by(QuestionGeneration.template_id.desc()).first()
+    ).order_by(QuestionGeneration.template_id.desc()).all()
     
-    if not template:
+    if not templates:
         return schemas.APIResponse(
             success=False,
             data=None,
@@ -805,6 +805,35 @@ def get_practice_questions_by_skill(
                 message=f"No practice content found for skill ID {skill_id}"
             ).dict()
         )
+
+    # Detect available types
+    available_types = list(set([t.type for t in templates if t.type]))
+    
+    # Logic: If type NOT specified and we have multiple distinct types, ask user to choose
+    # Exception: If count=1 (Preview Mode), just pick a default/latest instead of asking
+    if count > 1 and not type and len(available_types) > 1:
+        # Check if they are actually different types (ignore case)
+        unique_types_normalized = set(t.upper() for t in available_types)
+        if len(unique_types_normalized) > 1:
+            return schemas.APIResponse(
+                success=True,
+                data={
+                    "selection_needed": True,
+                    "available_types": available_types,
+                    "skill_id": skill_id
+                },
+                error=None
+            )
+
+    # Select template
+    template = None
+    if type:
+        # Find first template matching requested type
+        template = next((t for t in templates if t.type and t.type.upper() == type.upper()), None)
+    
+    if not template:
+        # Fallback: Prioritize MCQ if available, else latest
+        template = next((t for t in templates if t.type and t.type.upper() == 'MCQ'), templates[0])
         
     try:
         preview_result = service.QuestionGenerationService.preview_generation_v2(
@@ -814,6 +843,17 @@ def get_practice_questions_by_skill(
             solution_code=template.solution_template,
             count=count
         )
+        
+        # Inject metadata so frontend can display skill info
+        preview_result["template_metadata"] = {
+            "template_id": template.template_id,
+            "skill_id": template.skill_id,
+            "skill_name": template.skill_name,
+            "category": template.category,
+            "grade": template.grade,
+            "difficulty": template.difficulty,
+            "topic": template.skill_name # Fallback for V1 UI compatibility
+        }
         
         return schemas.APIResponse(
             success=True,
