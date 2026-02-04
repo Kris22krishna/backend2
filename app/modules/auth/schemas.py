@@ -23,6 +23,14 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class GoogleLogin(BaseModel):
+    email: EmailStr
+    first_name: str
+    last_name: Optional[str] = None
+    google_id: str
+    photo_url: Optional[str] = None
+
+
 class AdminLogin(BaseModel):
     username: str
     password: str

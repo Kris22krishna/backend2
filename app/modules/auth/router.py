@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.modules.auth.schemas import UserRegister, UserLogin, UserResponse, AdminLogin, UploaderCreate, UploaderLogin, UploaderResponse
+from app.modules.auth.schemas import UserRegister, UserLogin, UserResponse, AdminLogin, UploaderCreate, UploaderLogin, UploaderResponse, GoogleLogin
 from app.modules.auth.models import User, Credential, Tenant, School
 from app.modules.student.models import Student
 from app.modules.teacher.models import Teacher
@@ -131,7 +131,116 @@ def login(
         tenant_id=str(cred.tenant_id) if cred.tenant_id else "default"
     )
     
-    return {"access_token": token, "token_type": "bearer"}
+    # Get user details for frontend redirection
+    user = db.query(User).filter(User.user_id == cred.user_id).first()
+    
+    return {
+        "access_token": token, 
+        "token_type": "bearer",
+        "user_type": user.user_type if user else "guest",
+        "username": user.display_name if user else form_data.username,
+        "user_id": str(user.user_id) if user else None,
+        "first_name": user.first_name if user else None,
+        "email": user.email if user else None
+    }
+
+@router.post("/google")
+def google_login(login_in: GoogleLogin, db: Session = Depends(get_db)):
+    """
+    Login or Register with Google.
+    """
+    # Check if credential with this email already exists
+    cred = db.query(Credential).filter(Credential.identifier == login_in.email).first()
+    
+    user = None
+    
+    if cred:
+        # User exists, log them in
+        if cred.status != "active":
+             raise HTTPException(status_code=400, detail="User account is inactive")
+        
+        
+        user = db.query(User).filter(User.user_id == cred.user_id).first()
+
+        if not user:
+            # Orphaned credential found. Self-heal by deleting it.
+            db.delete(cred)
+            db.flush()
+            cred = None
+        
+    if not cred:
+        # User does not exist, Register them
+        
+        # Ensure Default Tenant
+        tenant = db.query(Tenant).first()
+        if not tenant:
+            tenant = Tenant(tenant_name="Default Tenant", tenant_code="DEFAULT", status="active")
+            db.add(tenant)
+            db.flush()
+        
+        # Ensure Default School
+        school = db.query(School).filter(School.tenant_id == tenant.tenant_id).first()
+        if not school:
+            school = School(tenant_id=tenant.tenant_id, school_name="Default School", school_code="DEF_SCH", status="active")
+            db.add(school)
+            db.flush()
+
+        # Create User record
+        user = User(
+            user_type="student", # Default to student for Google Login
+            first_name=login_in.first_name,
+            last_name=login_in.last_name,
+            email=login_in.email,
+            display_name=f"{login_in.first_name} {login_in.last_name or ''}".strip(),
+            status="active",
+            tenant_id=tenant.tenant_id,
+            school_id=school.school_id
+        )
+        db.add(user)
+        db.flush()
+        
+        # Create Credential record
+        new_cred = Credential(
+            user_id=user.user_id,
+            tenant_id=tenant.tenant_id,
+            auth_type="google",
+            identifier=login_in.email,
+            secret_hash="", # No password for google
+            provider="google",
+            is_primary=True,
+            status="active"
+        )
+        db.add(new_cred)
+
+        # Create Student Profile
+        student_profile = Student(
+            user_id=user.user_id,
+            tenant_id=tenant.tenant_id,
+            school_id=school.school_id,
+            grade="Grade 5", # Default
+        )
+        db.add(student_profile)
+        
+        try:
+            db.commit()
+            db.refresh(user)
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Google Login Registration failed: {str(e)}")
+
+    # Generate Token
+    token = create_access_token(
+        user_id=str(user.user_id),
+        tenant_id=str(user.tenant_id) if user.tenant_id else "default"
+    )
+    
+    return {
+        "access_token": token, 
+        "token_type": "bearer", 
+        "user_type": user.user_type, 
+        "username": user.display_name,
+        "user_id": str(user.user_id)
+    }
 @router.post("/admin-login")
 def admin_login(login_in: AdminLogin, db: Session = Depends(get_db)):
     """

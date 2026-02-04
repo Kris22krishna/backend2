@@ -55,7 +55,7 @@ api_router.include_router(admin_router)
 api_router.include_router(lottery_router)
 api_router.include_router(puzzles_router)
 api_router.include_router(reports_router)
-api_router.include_router(dashboard_router, prefix="/dashboard")
+api_router.include_router(dashboard_router)  # Has /admin prefix built-in
 api_router.include_router(skills_router)
 api_router.include_router(new_templates_router)
 
@@ -63,4 +63,5 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/health")
 def health():
+    # Health check endpoint - force reload
     return {"status": "ok"}

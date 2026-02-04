@@ -46,3 +46,38 @@ class FileUploadResponse(BaseModel):
 
 class LogoutResponse(BaseModel):
     message: str
+
+class StudentPerformanceSummary(BaseModel):
+    user_id: UUID
+    student_id: Optional[UUID]
+    name: str
+    email: Optional[str]
+    grade: Optional[str]
+    section: Optional[str]
+    avg_score: Optional[float] = 0
+    attendance_rate: Optional[float] = 0
+    status: str = "Active"  # Active or At Risk
+    trend: str = "up"  # up or down
+
+class AtRiskStudent(BaseModel):
+    user_id: UUID
+    name: str
+    grade: Optional[str]
+    score: float = 0
+    attendance: str = "0%"
+    issue: str = "Needs Support"
+
+class GradeStats(BaseModel):
+    grade: str
+    count: int
+
+class DashboardStats(BaseModel):
+    total_students: int
+    active_courses: int = 5
+    pending_assignments: int = 0
+    avg_engagement: str = "0h 0m"
+    students_by_grade: List[GradeStats] = []
+    top_performers: List[StudentPerformanceSummary] = []
+    at_risk_students: List[AtRiskStudent] = []
+    class_average: float = 0
+

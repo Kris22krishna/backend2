@@ -1,5 +1,5 @@
 from pydantic import ConfigDict, BaseModel
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 from datetime import datetime
 from uuid import UUID
 
@@ -39,3 +39,55 @@ class StudentListResponse(BaseModel):
     status: str
     joinedDate: datetime
 
+# New schemas for Admin Dashboard Overview
+class PlatformHealthStat(BaseModel):
+    title: str
+    value: int
+    delta: str
+    deltaType: str  # 'positive', 'negative', 'neutral'
+
+class AlertItem(BaseModel):
+    id: int
+    message: str
+    severity: str  # 'error', 'warning', 'info'
+
+class ActivityMetric(BaseModel):
+    metric: str
+    count: int
+    change: str
+
+class SkillTroubleItem(BaseModel):
+    skill: str
+    avgAccuracy: str
+    attempts: int
+
+class UserActivityItem(BaseModel):
+    role: str
+    activeToday: int
+    inactive7d: int
+    inactive30d: int
+
+class ActivityFeedItem(BaseModel):
+    id: int
+    message: str
+    time: str
+    iconType: str
+
+class QuestionHealthItem(BaseModel):
+    question: str
+    accuracy: Optional[str] = None
+    attempts: Optional[int] = None
+    uses: Optional[int] = None
+    addedBy: Optional[str] = None
+    date: Optional[str] = None
+
+class AdminDashboardOverview(BaseModel):
+    platformHealth: List[PlatformHealthStat]
+    todaysActivity: List[ActivityMetric]
+    alerts: List[AlertItem]
+    skillTroubles: List[SkillTroubleItem]
+    userActivity: List[UserActivityItem]
+    activityFeed: List[ActivityFeedItem]
+    lowAccuracyQuestions: List[QuestionHealthItem]
+    mostUsedQuestions: List[QuestionHealthItem]
+    recentlyAddedQuestions: List[QuestionHealthItem]
