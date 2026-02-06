@@ -1,5 +1,10 @@
 from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+import sys
+import os
+
+# Fix ModuleNotFoundError: Add parent directory (backend2) to sys.path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.core.config import settings
 from app.modules.auth.router import router as auth_router
 from app.modules.demo.router import router as demo_router
