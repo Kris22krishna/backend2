@@ -93,7 +93,8 @@ class QuestionTemplateService:
         
         # Apply filters
         if grade_level:
-            query = query.filter(QuestionTemplate.grade_level == grade_level)
+            # Handle ARRAY column: check if grade_level is IN the array
+            query = query.filter(QuestionTemplate.grade_level.any(grade_level))
         if module:
             query = query.filter(QuestionTemplate.module == module)
         if category:

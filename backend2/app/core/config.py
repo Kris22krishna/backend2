@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     DATABASE_URL: str
-    JWT_SECRET: str = "CHANGE_ME"
+    JWT_SECRET: str = "CHANGE_ME_TO_A_SUPER_SECRET_KEY_WITH_MORE_THAN_32_BYTES"
     JWT_ALGORITHM: str = "HS256"
     API_V1_STR: str = "/api/v1"
     ADMIN_EMAIL: str = "admin@learners.com"

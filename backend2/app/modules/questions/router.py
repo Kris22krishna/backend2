@@ -70,7 +70,7 @@ def list_templates(
     module: Optional[str] = Query(None, description="Filter by module"),
     category: Optional[str] = Query(None, description="Filter by category"),
     difficulty: Optional[str] = Query(None, description="Filter by difficulty"),
-    status: Optional[str] = Query(None, description="Filter by status"),
+    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status"),
     search: Optional[str] = Query(None, description="Search term for topic, subtopic"),
     limit: int = Query(50, ge=1, le=1000, description="Page size"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
@@ -93,7 +93,7 @@ def list_templates(
             module=module,
             category=category,
             difficulty=difficulty,
-            status=status,
+            status=status_filter,
             search=search,
             limit=limit,
             offset=offset
