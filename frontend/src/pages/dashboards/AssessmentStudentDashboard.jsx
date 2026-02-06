@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, LogOut, FileText, CheckCircle, Clock } from 'lucide-react';
+import { Play, LogOut, FileText, CheckCircle, Clock, Loader2 } from 'lucide-react';
 import { api } from '../../services/api';
 import logo from '../../assets/logo.jpg';
 
@@ -8,6 +8,7 @@ const AssessmentStudentDashboard = () => {
     const navigate = useNavigate();
     const [studentName, setStudentName] = useState('Student');
     const [studentDetails, setStudentDetails] = useState({ grade: '', school: '' });
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const name = localStorage.getItem('studentName');
@@ -24,6 +25,8 @@ const AssessmentStudentDashboard = () => {
     }, [navigate]);
 
     const handleStartAssessment = async () => {
+        if (isLoading) return;
+        setIsLoading(true);
         try {
             const data = await api.startAssessment();
             if (data && data.questions) {
@@ -32,6 +35,8 @@ const AssessmentStudentDashboard = () => {
         } catch (error) {
             console.error(error);
             alert("Failed to start assessment: " + error.message);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -97,10 +102,20 @@ const AssessmentStudentDashboard = () => {
 
                             <button
                                 onClick={handleStartAssessment}
-                                className="w-full md:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+                                disabled={isLoading}
+                                className={`w-full md:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all transform hover:scale-105 flex items-center justify-center gap-2 ${isLoading ? 'opacity-70 cursor-not-allowed scale-100' : ''}`}
                             >
-                                <Play className="h-5 w-5 fill-current" />
-                                Start Now
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        Starting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play className="h-5 w-5 fill-current" />
+                                        Start Now
+                                    </>
+                                )}
                             </button>
                         </div>
 
