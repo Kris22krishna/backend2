@@ -1,0 +1,354 @@
+/* Math Selection Page - Modern Category Layout */
+.math-selection-page {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+    padding-bottom: 4rem;
+}
+
+/* Hero Section */
+.math-hero {
+    position: relative;
+    padding: 4rem 2rem 3rem;
+    text-align: center;
+    overflow: hidden;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 50px;
+    color: #6366f1;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.badge-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.math-hero h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.math-hero p {
+    font-size: 1.15rem;
+    color: #64748b;
+    line-height: 1.7;
+}
+
+/* Floating decorations */
+.hero-decoration {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.floating-shape {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.5;
+    animation: float 8s ease-in-out infinite;
+}
+
+.shape-1 {
+    width: 150px;
+    height: 150px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+    top: 20%;
+    left: 5%;
+    animation-delay: 0s;
+}
+
+.shape-2 {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+    top: 30%;
+    right: 10%;
+    animation-delay: 2s;
+}
+
+.shape-3 {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    bottom: 20%;
+    left: 15%;
+    animation-delay: 4s;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-20px) rotate(10deg);
+    }
+}
+
+/* Categories Section */
+.categories-section {
+    padding: 0 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+/* Category Card */
+.category-card {
+    background: white;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.category-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* Card Header */
+.card-header {
+    position: relative;
+    padding: 2rem;
+    color: white;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+}
+
+.header-content {
+    position: relative;
+    z-index: 2;
+}
+
+.category-icon {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 0.75rem;
+    opacity: 0.9;
+}
+
+.card-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.card-header .subtitle {
+    font-size: 0.95rem;
+    opacity: 0.9;
+    font-weight: 500;
+}
+
+.illustration-wrapper {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 180px;
+    height: 160px;
+    opacity: 0.25;
+    transition: all 0.4s ease;
+}
+
+.category-card:hover .illustration-wrapper {
+    opacity: 0.4;
+    transform: scale(1.1);
+}
+
+.category-illustration {
+    width: 100%;
+    height: 100%;
+}
+
+/* Card Body */
+.card-body {
+    padding: 1.5rem 2rem 2rem;
+}
+
+.card-description {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+}
+
+/* Features List */
+.features-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.feature-tag {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Grades List */
+.grades-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.grade-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.grade-btn:hover {
+    background: var(--accent-gradient);
+    border-color: transparent;
+    color: white;
+    transform: translateX(4px);
+}
+
+.grade-btn .btn-arrow {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+}
+
+.grade-btn:hover .btn-arrow {
+    transform: translateX(4px);
+}
+
+/* Junior Card Specific */
+.category-card.junior .grade-btn:hover {
+    background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+}
+
+/* Middle Card Specific */
+.category-card.middle .grade-btn:hover {
+    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+}
+
+/* High Card Specific */
+.category-card.high .grade-btn:hover {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* Bottom CTA */
+.bottom-cta {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.bottom-cta p {
+    font-size: 1.1rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .category-card:last-child {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .math-hero h1 {
+        font-size: 2rem;
+    }
+
+    .categories-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .category-card:last-child {
+        grid-column: span 1;
+    }
+
+    .card-header {
+        min-height: 160px;
+    }
+
+    .illustration-wrapper {
+        width: 140px;
+        height: 120px;
+    }
+
+    .floating-shape {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .math-hero {
+        padding: 2rem 1rem;
+    }
+
+    .math-hero h1 {
+        font-size: 1.75rem;
+    }
+
+    .categories-section {
+        padding: 0 1rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    .grade-btn {
+        padding: 0.875rem 1rem;
+    }
+}

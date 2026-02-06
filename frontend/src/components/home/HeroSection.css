@@ -1,0 +1,224 @@
+.hero {
+    min-height: 65vh;
+    /* Taller hero */
+    width: 100%;
+    /* Full width background */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    padding-top: 0;
+    background: radial-gradient(circle at center, #edf9ff 0%, #f0fdf4 100%);
+    background-size: cover;
+    overflow: hidden;
+}
+
+.hero-content {
+    width: 100%;
+    max-width: 1280px;
+    /* Constrain content width */
+    margin: 0 auto;
+    /* Center content */
+    padding: 0 2rem;
+    /* Ensure padding on small screens */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2.5rem;
+    justify-content: center;
+}
+
+/* Center everything */
+.hero-left {
+    text-align: center;
+    margin-top: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hero-title {
+    font-size: 5rem;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.03em;
+    color: #0f172a;
+    line-height: 1.1;
+    font-weight: 500;
+    font-family: 'Times New Roman', Cambria, Cochin, Georgia, Times, serif;
+    /* Serif Font */
+    position: relative;
+    display: inline-block;
+}
+
+.highlight-text {
+    font-weight: 700;
+    font-style: italic;
+    background: linear-gradient(135deg, #0e7490 0%, #1d4ed8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+    font-size: 1.5rem;
+    color: #475569;
+    max-width: 700px;
+    margin: 0 auto 1rem auto;
+    font-weight: 400;
+    font-family: system-ui, -apple-system, sans-serif;
+    /* Keep subtitle sans-serif */
+}
+
+/* Decorative Elements */
+.deco-icon {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    padding: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0ea5e9;
+    z-index: -1;
+    /* Behind text if needed, or keeping it distinct */
+}
+
+.float-1 {
+    top: -20px;
+    left: -40px;
+    color: #8b5cf6;
+    /* Purple */
+    transform: rotate(-10deg);
+    animation: float 6s ease-in-out infinite;
+}
+
+.float-2 {
+    bottom: -10px;
+    right: -30px;
+    color: #f59e0b;
+    /* Amber */
+    animation: float 5s ease-in-out infinite reverse;
+}
+
+.float-3 {
+    top: 50%;
+    right: -60px;
+    color: #10b981;
+    /* Emerald */
+    animation: bounce 4s ease-in-out infinite;
+    font-size: 0.8em;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px) rotate(-10deg);
+    }
+
+    50% {
+        transform: translateY(-15px) rotate(-5deg);
+    }
+
+    100% {
+        transform: translateY(0px) rotate(-10deg);
+    }
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Right Column (now just buttons below text) */
+.hero-right {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.hero-cta-buttons {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-primary-large {
+    background-color: #0f172a;
+    /* Darker slate/black for contrast */
+    color: white;
+    padding: 1rem 3rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 100px;
+    /* Pill shape */
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary-large:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary-large {
+    background-color: white;
+    color: #0f172a;
+    padding: 1rem 3rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 100px;
+    /* Pill shape */
+    border: 2px solid #e2e8f0;
+    /* Thicker border */
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary-large:hover {
+    border-color: #0f172a;
+    background-color: #f8fafc;
+}
+
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 3rem;
+    }
+
+    .hero-cta-buttons {
+        flex-direction: column;
+        width: 100%;
+        gap: 1rem;
+    }
+
+    .btn-primary-large,
+    .btn-secondary-large {
+        width: 100%;
+    }
+
+    .float-1 {
+        left: 0;
+        top: -30px;
+    }
+
+    .float-2 {
+        right: 0;
+        bottom: -20px;
+    }
+
+    .float-3 {
+        display: none;
+    }
+
+    /* Hide extra clutter on mobile */
+}

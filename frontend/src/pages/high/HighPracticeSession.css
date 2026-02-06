@@ -1,0 +1,450 @@
+/* High School Practice Session - Clean Academic Theme */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Merriweather:wght@300;400;700;900&display=swap');
+
+.high-practice-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: #f8fafc;
+    /* Slate 50 */
+    font-family: 'Inter', sans-serif;
+    color: #334155;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Layout --- */
+.high-practice-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 320px;
+    /* Slim Sidebar | Main | Tools */
+    grid-template-rows: 1fr;
+    height: 100%;
+    width: 100%;
+}
+
+/* --- Sidebar --- */
+.high-sidebar {
+    background: #ffffff;
+    border-right: 1px solid #e2e8f0;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    z-index: 10;
+}
+
+.high-logo {
+    font-family: 'Merriweather', serif;
+    font-weight: 900;
+    font-size: 1.25rem;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Palette */
+.high-palette-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.high-palette-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.high-palette-item {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    background: #f1f5f9;
+    color: #64748b;
+    transition: all 0.2s;
+}
+
+.high-palette-item:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.high-palette-item.current {
+    background: #0f172a;
+    color: white;
+    font-weight: 700;
+}
+
+.high-palette-item.correct {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.high-palette-item.wrong {
+    background: #fef2f2;
+    color: #e11d48;
+    border: 1px solid #fecdd3;
+}
+
+.high-exit-btn {
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #64748b;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.high-exit-btn:hover {
+    background: #fef2f2;
+    color: #e11d48;
+    border-color: #fecdd3;
+}
+
+/* --- Main Content --- */
+.high-main-content {
+    padding: 3rem 4rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1100px;
+    /* Wider but contained */
+    margin: 0 auto;
+    /* Centered */
+}
+
+/* Review Card Styles */
+.review-item {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 2rem;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.review-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    border-color: #cbd5e1;
+}
+
+.review-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #cbd5e1;
+    /* Default gray */
+}
+
+.review-item.correct::before {
+    background: #10b981;
+}
+
+.review-item.wrong::before {
+    background: #f43f5e;
+}
+
+.review-item.skipped::before {
+    background: #f59e0b;
+}
+
+
+.high-header {
+    margin-bottom: 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.high-title-group h1 {
+    font-family: 'Merriweather', serif;
+    font-size: 2rem;
+    color: #0f172a;
+    margin: 0 0 8px 0;
+}
+
+.high-subtitle {
+    color: #64748b;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.high-badge {
+    background: #eff6ff;
+    color: #2563eb;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* Question Card */
+.question-card {
+    background: white;
+    padding: 3rem;
+    border-radius: 2px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e2e8f0;
+    border-top: 4px solid #0f172a;
+    /* Academic Navy Top Border */
+}
+
+.question-meta {
+    margin-bottom: 2rem;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.question-text {
+    font-family: 'Merriweather', serif;
+    font-size: 1.25rem;
+    line-height: 1.8;
+    color: #334155;
+    margin-bottom: 2.5rem;
+}
+
+/* Options */
+.high-options-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.high-option-btn {
+    display: flex;
+    text-align: left;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    padding: 1.25rem;
+    border-radius: 4px;
+    /* Sharper corners */
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.05rem;
+    color: #334155;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.high-option-btn:hover:not(:disabled) {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+
+.high-option-btn.selected {
+    border-color: #0f172a;
+    background: #f1f5f9;
+    box-shadow: 0 0 0 1px #0f172a;
+}
+
+.high-option-btn.correct {
+    background: #ecfdf5;
+    border-color: #059669;
+    color: #064e3b;
+}
+
+.high-option-btn.wrong {
+    background: #fef2f2;
+    border-color: #e11d48;
+    color: #881337;
+}
+
+.high-key {
+    font-family: 'Merriweather', serif;
+    font-weight: 700;
+    color: #94a3b8;
+}
+
+.high-option-btn.selected .high-key {
+    color: #0f172a;
+}
+
+/* Input */
+.high-text-input {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.2rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 4px;
+    font-family: 'Merriweather', serif;
+}
+
+.high-text-input:focus {
+    border-color: #0f172a;
+    outline: none;
+}
+
+/* Actions */
+.high-actions {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.high-btn {
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+
+.high-btn.primary {
+    background: #0f172a;
+    color: white;
+}
+
+.high-btn.primary:hover:not(:disabled) {
+    background: #1e293b;
+    transform: translateY(-1px);
+}
+
+.high-btn.secondary {
+    background: white;
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.high-btn.secondary:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+}
+
+/* Feedback */
+.high-feedback-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+.high-feedback-msg {
+    font-weight: 700;
+    font-family: 'Merriweather', serif;
+    font-size: 1.1rem;
+}
+
+.high-feedback-msg.correct {
+    color: #059669;
+}
+
+.high-feedback-msg.incorrect {
+    color: #e11d48;
+}
+
+/* --- Whiteboard Column --- */
+.high-tools-col {
+    background: #f8fafc;
+    border-left: 1px solid #e2e8f0;
+    padding: 1rem;
+}
+
+.high-notebook {
+    background: white;
+    height: 100%;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border-radius: 2px;
+    display: flex;
+    flex-direction: column;
+}
+
+.high-notebook-header {
+    padding: 1rem;
+    border-bottom: 2px solid #e2e8f0;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    color: #64748b;
+    background: #fafafa;
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+    .high-practice-layout {
+        display: block;
+        height: auto;
+    }
+
+    .high-sidebar,
+    .high-tools-col {
+        display: none;
+        /* Hide panels on mobile */
+    }
+
+    .high-main-content {
+        padding: 1.5rem;
+    }
+
+    .high-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .high-title-group h1 {
+        font-size: 1.5rem;
+    }
+
+    .question-card {
+        padding: 1.5rem;
+    }
+
+    .question-text {
+        font-size: 1.15rem;
+    }
+
+    .high-actions {
+        flex-direction: column-reverse;
+    }
+
+    .high-btn {
+        width: 100%;
+    }
+}

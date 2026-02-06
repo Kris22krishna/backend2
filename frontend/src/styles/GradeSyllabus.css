@@ -1,0 +1,102 @@
+.grade-syllabus-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    background-color: #fff;
+}
+
+.syllabus-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.syllabus-header h1 {
+    font-size: 2.5rem;
+    color: #4CAF50;
+    /* Green header like reference */
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.syllabus-header p {
+    color: #555;
+    font-size: 1rem;
+    line-height: 1.5;
+    max-width: 800px;
+}
+
+.syllabus-grid {
+    column-count: 1;
+    column-gap: 3rem;
+    /* Increased gap */
+}
+
+@media (min-width: 768px) {
+    .syllabus-grid {
+        column-count: 2;
+    }
+}
+
+@media (min-width: 1200px) {
+    .syllabus-grid {
+        column-count: 3;
+    }
+}
+
+.category-block {
+    break-inside: avoid;
+    margin-bottom: 2.5rem;
+    background: transparent;
+    padding: 0;
+}
+
+.category-title {
+    font-size: 1.25rem;
+    color: #4CAF50;
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+    border-bottom: none;
+}
+
+.category-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    /* Tighter list */
+}
+
+.skill-item {
+    display: flex;
+    align-items: flex-start;
+    /* Align top for multi-line */
+    text-decoration: none;
+    padding: 2px 0;
+    transition: color 0.1s;
+    line-height: 1.4;
+    cursor: pointer;
+}
+
+.skill-item:hover .skill-title {
+    color: #1a73e8;
+    text-decoration: underline;
+}
+
+.skill-code {
+    font-weight: 700;
+    color: #ccc;
+    /* Subtle bullet */
+    margin-right: 8px;
+    min-width: 15px;
+    /* Reduced specific width */
+    font-size: 1.2rem;
+    /* Larger bullet */
+    line-height: 1.2;
+}
+
+.skill-title {
+    color: #333;
+    font-size: 0.95rem;
+}

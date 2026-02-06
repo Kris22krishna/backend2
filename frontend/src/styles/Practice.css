@@ -1,0 +1,568 @@
+/* Practice Page - Modern Category Layout */
+.practice-page {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+/* Practice Header Section */
+.practice-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 6rem 2rem 1.5rem;
+}
+
+.header-left h1 {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.header-left p {
+    font-size: 1.1rem;
+    color: #64748b;
+}
+
+.header-stats {
+    display: flex;
+    gap: 2rem;
+}
+
+.header-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e2e8f0;
+}
+
+.stat-number {
+    font-size: 1.75rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.stat-text {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .practice-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1.5rem;
+        padding: 5rem 1.5rem 1rem;
+    }
+
+    .header-left h1 {
+        font-size: 1.75rem;
+    }
+
+    .header-stats {
+        gap: 1rem;
+    }
+
+    .header-stat {
+        padding: 0.75rem 1rem;
+    }
+
+    .stat-number {
+        font-size: 1.35rem;
+    }
+}
+
+/* Hero Section */
+.practice-hero {
+    position: relative;
+    padding: 6rem 2rem 3rem;
+    text-align: center;
+    overflow: hidden;
+}
+
+.practice-hero .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.practice-hero .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1.25rem;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 50px;
+    color: #6366f1;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.practice-hero .badge-icon {
+    width: 18px;
+    height: 18px;
+}
+
+.practice-hero h1 {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    line-height: 1.15;
+}
+
+.practice-hero .gradient-text {
+    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.practice-hero p {
+    font-size: 1.2rem;
+    color: #64748b;
+    line-height: 1.7;
+    max-width: 600px;
+    margin: 0 auto 2rem;
+}
+
+/* Hero Stats */
+.hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    margin-top: 2rem;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.stat-icon {
+    width: 24px;
+    height: 24px;
+    color: #6366f1;
+}
+
+.stat-item>div {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+/* Floating decorations */
+.practice-hero .hero-decoration {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.practice-hero .floating-shape {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.4;
+    animation: float 8s ease-in-out infinite;
+}
+
+.practice-hero .shape-1 {
+    width: 180px;
+    height: 180px;
+    background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+    top: 15%;
+    left: 5%;
+    animation-delay: 0s;
+}
+
+.practice-hero .shape-2 {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+    top: 25%;
+    right: 8%;
+    animation-delay: 2s;
+}
+
+.practice-hero .shape-3 {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    bottom: 20%;
+    left: 12%;
+    animation-delay: 4s;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+
+    50% {
+        transform: translateY(-25px) rotate(15deg) scale(1.05);
+    }
+}
+
+/* Categories Section */
+.categories-section {
+    padding: 1.5rem 2rem 4rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+/* Category Card */
+.category-card {
+    background: white;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.08);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.category-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+/* Card Header */
+.card-header {
+    position: relative;
+    padding: 1.75rem 2rem 2rem;
+    color: white;
+    min-height: 220px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.9rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+    width: fit-content;
+}
+
+.header-badge .category-icon {
+    width: 16px;
+    height: 16px;
+}
+
+.header-content {
+    position: relative;
+    z-index: 2;
+}
+
+.header-content h2 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
+}
+
+.header-content .subtitle {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    font-weight: 600;
+}
+
+.header-stats {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.illustration-wrapper {
+    position: absolute;
+    top: 10px;
+    right: -10px;
+    width: 180px;
+    height: 160px;
+    opacity: 0.3;
+    transition: all 0.4s ease;
+}
+
+.category-card:hover .illustration-wrapper {
+    opacity: 0.5;
+    transform: scale(1.1) translateX(-10px);
+}
+
+.category-illustration {
+    width: 100%;
+    height: 100%;
+}
+
+/* Card Body */
+.card-body {
+    padding: 1.75rem 2rem 2rem;
+}
+
+.card-description {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    margin-bottom: 1.25rem;
+}
+
+/* Features List */
+.features-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.75rem;
+}
+
+.feature-tag {
+    padding: 0.4rem 0.85rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Grades List */
+.grades-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.grades-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.topics-hint {
+    font-weight: 500;
+}
+
+.grade-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.grade-btn:hover {
+    background: var(--accent-gradient);
+    border-color: transparent;
+    color: white;
+    transform: translateX(6px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.grade-info {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    gap: 0.15rem;
+}
+
+.grade-name {
+    font-weight: 700;
+    color: #374151;
+    transition: color 0.3s;
+}
+
+.grade-btn:hover .grade-name {
+    color: white;
+}
+
+.grade-topics {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    transition: color 0.3s;
+}
+
+.grade-btn:hover .grade-topics {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.grade-btn .btn-arrow {
+    width: 22px;
+    height: 22px;
+    color: #94a3b8;
+    transition: all 0.3s ease;
+}
+
+.grade-btn:hover .btn-arrow {
+    color: white;
+    transform: translateX(4px);
+}
+
+/* Junior Card Specific */
+.category-card.junior .grade-btn:hover {
+    background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+}
+
+/* Middle Card Specific */
+.category-card.middle .grade-btn:hover {
+    background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #8b5cf6 100%);
+}
+
+/* High Card Specific */
+.category-card.high .grade-btn:hover {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+/* Bottom CTA */
+.bottom-cta {
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.cta-content {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2.5rem;
+    border-radius: 20px;
+    color: white;
+}
+
+.cta-emoji {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.cta-content h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.cta-content p {
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .category-card.high {
+        grid-column: span 2;
+    }
+
+    .category-card.high .card-header {
+        min-height: 180px;
+    }
+}
+
+@media (max-width: 768px) {
+    .practice-hero h1 {
+        font-size: 2.25rem;
+    }
+
+    .hero-stats {
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+
+    .categories-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .category-card.high {
+        grid-column: span 1;
+    }
+
+    .card-header {
+        min-height: 180px;
+    }
+
+    .illustration-wrapper {
+        width: 140px;
+        height: 120px;
+    }
+
+    .floating-shape {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .practice-hero {
+        padding: 5rem 1rem 2rem;
+    }
+
+    .practice-hero h1 {
+        font-size: 1.85rem;
+    }
+
+    .practice-hero p {
+        font-size: 1rem;
+    }
+
+    .categories-section {
+        padding: 1rem 1rem 3rem;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    .grade-btn {
+        padding: 0.875rem 1rem;
+    }
+
+    .cta-content {
+        padding: 2rem 1.5rem;
+    }
+}

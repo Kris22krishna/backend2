@@ -1,0 +1,411 @@
+/* Junior Subtopics - Child-friendly Pill Design */
+
+.junior-subtopics-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #98D8C8 0%, #E0F6FF 50%, #FFE5E5 100%);
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Reuse decorations from main page */
+.junior-subtopics-page .junior-decorations {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.junior-subtopics-page .floating-cloud {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    filter: blur(40px);
+}
+
+.junior-subtopics-page .cloud-1 {
+    width: 200px;
+    height: 200px;
+    top: 10%;
+    left: 5%;
+    animation: floatCloud 8s ease-in-out infinite;
+}
+
+.junior-subtopics-page .cloud-2 {
+    width: 250px;
+    height: 250px;
+    top: 30%;
+    right: 10%;
+    animation: floatCloud 10s ease-in-out infinite 2s;
+}
+
+.junior-subtopics-page .cloud-3 {
+    width: 180px;
+    height: 180px;
+    bottom: 20%;
+    left: 20%;
+    animation: floatCloud 12s ease-in-out infinite 4s;
+}
+
+@keyframes floatCloud {
+
+    0%,
+    100% {
+        transform: translateY(0) translateX(0);
+    }
+
+    50% {
+        transform: translateY(-30px) translateX(20px);
+    }
+}
+
+/* Container */
+.junior-subtopics-page .junior-container {
+    position: relative;
+    z-index: 10;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 6rem 2rem 4rem;
+}
+
+/* Back Button */
+.junior-subtopics-page .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2C3E50;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 2rem;
+}
+
+.junior-subtopics-page .back-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.junior-subtopics-page .back-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Header */
+.junior-subtopics-page .junior-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.junior-subtopics-page .junior-header h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    color: white;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    margin-bottom: 1rem;
+    animation: bounceIn 0.6s ease-out;
+}
+
+@keyframes bounceIn {
+    0% {
+        transform: translateY(-30px);
+        opacity: 0;
+    }
+
+    60% {
+        transform: translateY(5px);
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.completion-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: white;
+    border-radius: 50px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2C3E50;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+    animation: scaleIn 0.5s ease-out 0.3s both;
+}
+
+@keyframes scaleIn {
+    0% {
+        transform: scale(0);
+    }
+
+    80% {
+        transform: scale(1.1);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.junior-subtopics-page .sparkle-icon {
+    width: 24px;
+    height: 24px;
+    color: #FFE66D;
+}
+
+.topic-title {
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
+}
+
+/* Loading */
+.junior-subtopics-page .loading-container {
+    text-align: center;
+    padding: 4rem;
+}
+
+.junior-subtopics-page .loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    margin: 0 auto 1rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.junior-subtopics-page .loading-container p {
+    font-size: 1.25rem;
+    color: white;
+    font-weight: 600;
+}
+
+/* Subtopics Container */
+.subtopics-container {
+    max-width: 1200px;
+    /* Increased from 900px */
+    width: 100%;
+    margin: 0 auto;
+}
+
+.subtopics-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    /* Responsive grid */
+    gap: 2rem;
+    padding: 0 1rem;
+}
+
+/* Subtopic Pill */
+.subtopic-pill {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 2rem;
+    background: var(--pill-gradient);
+    border: 4px solid rgba(255, 255, 255, 0.5);
+    border-radius: 50px;
+    width: 100%;
+    /* Fill grid cell */
+    min-width: 0;
+    /* specific min-width not needed in grid */
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: pillEnter 0.5s ease-out both;
+    animation-delay: var(--animation-delay);
+    overflow: visible;
+}
+
+@keyframes pillEnter {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(-10deg);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+    }
+}
+
+.subtopic-pill:hover {
+    transform: scale(1.08) translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), 0 0 30px var(--pill-color);
+}
+
+/* Pill glow */
+.pill-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50px;
+    animation: pillGlow 2s ease-in-out infinite;
+}
+
+@keyframes pillGlow {
+
+    0%,
+    100% {
+        box-shadow: inset 0 0 20px transparent;
+    }
+
+    50% {
+        box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.4);
+    }
+}
+
+/* Pill icon */
+.pill-icon {
+    width: 50px;
+    height: 50px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.4s ease;
+    flex-shrink: 0;
+}
+
+.subtopic-pill:hover .pill-icon {
+    transform: rotate(360deg) scale(1.1);
+}
+
+.number-icon {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--pill-color);
+}
+
+.check-icon {
+    width: 24px;
+    height: 24px;
+    color: var(--pill-color);
+}
+
+/* Pill text */
+.pill-text {
+    flex: 1;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: left;
+}
+
+/* Completed badge */
+.completed-badge {
+    width: 40px;
+    height: 40px;
+    background: #10b981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+    animation: badgePop 0.5s ease-out;
+    flex-shrink: 0;
+}
+
+@keyframes badgePop {
+    0% {
+        transform: scale(0) rotate(-180deg);
+    }
+
+    60% {
+        transform: scale(1.2) rotate(10deg);
+    }
+
+    100% {
+        transform: scale(1) rotate(0);
+    }
+}
+
+.badge-check {
+    width: 22px;
+    height: 22px;
+    color: white;
+}
+
+/* Hover label */
+.hover-label {
+    position: absolute;
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.5rem 1rem;
+    background: white;
+    border-radius: 50px;
+    font-weight: 700;
+    color: var(--pill-color);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+    animation: labelFade 0.3s ease-out;
+    z-index: 10;
+}
+
+@keyframes labelFade {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .junior-subtopics-page .junior-header h1 {
+        font-size: 2.25rem;
+    }
+
+    .completion-badge {
+        font-size: 1.25rem;
+        padding: 0.75rem 1.5rem;
+    }
+
+    .subtopic-pill {
+        min-width: 100%;
+        padding: 1rem 1.5rem;
+    }
+
+    .pill-text {
+        font-size: 1.15rem;
+    }
+
+    .pill-icon {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+@media (max-width: 480px) {
+    .junior-subtopics-page .junior-container {
+        padding: 5rem 1rem 3rem;
+    }
+
+    .junior-subtopics-page .junior-header h1 {
+        font-size: 1.75rem;
+    }
+}
