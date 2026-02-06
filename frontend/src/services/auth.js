@@ -47,6 +47,9 @@ export const authService = {
      */
     async loginWithGoogle() {
         try {
+            if (!auth || !googleProvider) {
+                throw new Error("Google Login is not configured. Please contact support.");
+            }
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
 

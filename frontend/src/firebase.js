@@ -15,9 +15,21 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
+let app;
+let auth = null;
+let googleProvider = null;
+
+try {
+    if (firebaseConfig.projectId) {
+        app = initializeApp(firebaseConfig);
+        // analytics = getAnalytics(app); // Only if needed in specific components
+        auth = getAuth(app);
+        googleProvider = new GoogleAuthProvider();
+    } else {
+        console.warn("Firebase projectId is missing. Google Login will be disabled.");
+    }
+} catch (error) {
+    console.error("Firebase initialization failed:", error);
+}
 
 export { auth, googleProvider, signInWithPopup };
