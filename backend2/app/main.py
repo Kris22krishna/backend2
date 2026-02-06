@@ -28,13 +28,19 @@ from app.modules.skills.router import router as skills_router
 from fastapi.staticfiles import StaticFiles
 from app.modules.upload.router import router as upload_router
 
+
 app = FastAPI(
     swagger_ui_parameters={
         "persistAuthorization": True,
     }
 )
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# Use absolute path for static files to avoid CWD issues
+static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
+
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 app.add_middleware(
     CORSMiddleware,
