@@ -15,7 +15,11 @@ from uuid import UUID
 from app.modules.questions.models import QuestionTemplate
 from app.modules.questions.executor import executor
 from app.modules.assessment_integration.models import AssessmentSession, AssessmentSessionQuestion, AssessmentStudent
-from app.modules.assessment_integration.schemas import AssessmentSessionResponse, AssessmentQuestionResponse
+from app.modules.assessment_integration.schemas import (
+    AssessmentStudentSchema, AssessmentAccessLogin, 
+    AssessmentSessionResponse, AssessmentQuestionResponse, AssessmentReport,
+    AssessmentSubmission, AssessmentSessionDetail, AssessmentQuestionDetail
+)
 
 router = APIRouter(prefix="/assessment-integration", tags=["assessment-integration"])
 
@@ -141,6 +145,187 @@ def get_uploaded_students(
     ).all()
     return students
 
+@router.get("/dashboard-stats")
+def get_dashboard_stats(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get statistics for the uploader dashboard.
+    """
+    # 1. Total Students
+    student_query = db.query(AssessmentStudent).filter(
+        AssessmentStudent.uploaded_by_user_id == current_user.user_id
+    )
+    total_students = student_query.count()
+    student_ids = [s.id for s in student_query.all()]
+
+    # 2. Total Assessments
+    assessments_count = db.query(AssessmentSession).filter(
+        AssessmentSession.student_id.in_(student_ids)
+    ).count()
+
+    # 3. High Scorers (Accuracy > 80% in at least one COMPLETED session)
+    # We define accuracy as (count of is_correct == 'True') / (total questions in session)
+    
+    high_scorers_count = 0
+    if student_ids:
+        # Fetch all completed sessions for these students
+        sessions = db.query(AssessmentSession).filter(
+            AssessmentSession.student_id.in_(student_ids),
+            AssessmentSession.status == "COMPLETED"
+        ).all()
+
+        high_scorer_student_ids = set()
+        for session in sessions:
+            questions = session.questions
+            if not questions:
+                continue
+            
+            correct_count = sum(1 for q in questions if q.is_correct == 'True')
+            accuracy = correct_count / len(questions)
+            
+            if accuracy >= 0.8:
+                high_scorer_student_ids.add(session.student_id)
+        
+        high_scorers_count = len(high_scorer_student_ids)
+
+    return {
+        "success": True,
+        "data": {
+            "total_students": total_students,
+            "assessments_count": assessments_count,
+            "high_scorers_count": high_scorers_count,
+            "top_grade": _get_top_grade(student_query.all())
+        }
+    }
+
+def _get_top_grade(students):
+    if not students:
+        return "N/A"
+    
+    from collections import Counter
+    import re
+    
+    grades = []
+    for s in students:
+        match = re.search(r'\d+', str(s.grade))
+        if match:
+            grades.append(match.group())
+    
+    if not grades:
+        return "N/A"
+        
+    most_common = Counter(grades).most_common(1)
+    return most_common[0][0] if most_common else "N/A"
+
+@router.get("/reports", response_model=list[AssessmentReport])
+def get_reports(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get completed assessment reports for students uploaded by the current uploader.
+    """
+    # 1. Fetch student IDs for this uploader
+    student_ids = db.query(AssessmentStudent.id).filter(
+        AssessmentStudent.uploaded_by_user_id == current_user.user_id
+    ).all()
+    student_ids = [s[0] for s in student_ids]
+
+    if not student_ids:
+        return []
+
+    # 2. Fetch completed sessions for these students
+    reports = db.query(AssessmentSession).filter(
+        AssessmentSession.student_id.in_(student_ids),
+        AssessmentSession.status == "COMPLETED"
+    ).order_by(AssessmentSession.completed_at.desc()).all()
+
+    # 3. Format the data
+    result = []
+    for report in reports:
+        correct_count = sum(1 for q in report.questions if q.is_correct == 'True')
+        total_questions = len(report.questions)
+        accuracy = (correct_count / total_questions * 100) if total_questions > 0 else 0
+        
+        result.append({
+            "id": report.id,
+            "student_id": report.student_id,
+            "student_name": report.student.name,
+            "grade": report.student.grade,
+            "completed_at": report.completed_at,
+            "total_questions": total_questions,
+            "correct_answers": correct_count,
+            "accuracy": round(accuracy, 2)
+        })
+    
+    return result
+
+@router.get("/reports/{session_id}", response_model=AssessmentSessionDetail)
+def get_report_detail(
+    session_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get detailed report for a specific assessment session.
+    """
+    # 1. Fetch the session
+    session = db.query(AssessmentSession).filter(
+        AssessmentSession.id == session_id
+    ).first()
+    
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    # 2. Verify access (student must belong to uploader)
+    if session.student.uploaded_by_user_id != current_user.user_id:
+         raise HTTPException(status_code=403, detail="Access denied")
+         
+    # 3. Compile Details
+    questions_data = []
+    correct_count = 0
+    total_questions = len(session.questions)
+    
+    for q in session.questions:
+        is_correct = q.is_correct == 'True'
+        if is_correct:
+            correct_count += 1
+            status_str = "correct"
+        elif not q.student_answer:
+            status_str = "skipped"
+        else:
+            status_str = "wrong"
+            
+        questions_data.append({
+            "id": q.id,
+            "question_html": q.question_html,
+            "student_answer": q.student_answer,
+            "correct_answer": q.correct_answer,
+            "is_correct": is_correct,
+            "status": status_str
+        })
+        
+    accuracy = (correct_count / total_questions * 100) if total_questions > 0 else 0
+    
+    duration = 0
+    if session.completed_at and session.started_at:
+        duration = (session.completed_at - session.started_at).total_seconds() / 60.0
+        
+    return {
+        "session_id": session.id,
+        "student_name": session.student.name,
+        "grade": session.student.grade,
+        "started_at": session.started_at,
+        "completed_at": session.completed_at,
+        "duration_minutes": round(duration, 2),
+        "score": correct_count,
+        "total_questions": total_questions,
+        "accuracy": round(accuracy, 2),
+        "questions": questions_data
+    }
+
 @router.post("/student-access")
 def student_access(
     login_in: AssessmentAccessLogin,
@@ -184,34 +369,52 @@ def start_assessment(
     Generates 25 'Hard' questions for the student's grade.
     """
     
+    import random
+
     # 1. Check for existing active session
-    # For simplicity, if they have a pending session, return that.
     active_session = db.query(AssessmentSession).filter(
         AssessmentSession.student_id == student.id,
         AssessmentSession.status.in_(["PENDING", "IN_PROGRESS"])
     ).first()
     
     if active_session:
-        # Fetch questions with topic from template
-        # We join to get the topic. 
-        # Since we need to return AssessmentQuestionResponse, we can construct the dicts or objects.
-        # SQLAlchemy won't return AssessmentSessionQuestion objects if we select specific columns, it returns tuples.
-        # But we can assume the relationship exists if we defined it? 
-        # The model AssessmentSessionQuestion doesn't have a relationship to QuestionTemplate defined in models.py (it has template_id col but no relationship).
-        # We'll do a join and manual construction.
+        # Fetch questions with topic from template (V1)
+        # Note: V2 questions are also stored in AssessmentSessionQuestion. 
+        # But we need to join on the correct table to get the topic.
+        # Since template_id is not unique across tables (both auto-increment integer), we have a collision risk if we mix them 
+        # without tracking source. 
+        # Ideally AssessmentSessionQuestion should store 'is_v2' flag or 'source'. 
+        # CURRENT SCHEMA LIMITATION: AssessmentSessionQuestion has template_id (int). 
+        # If V1 id=1 and V2 id=1 exist, we can't tell them apart easily unless we assumed ranges or added a column.
+        # For this fix, let's assume we can try to look up in V2 first (since it's newer/larger), then V1? 
+        # OR: We can store the topic IN the question_type or options or just not join for now?
+        # Actually, we added 'topic' to the response schema. 
+        # Let's try to recover topic from the "GeneratedQuestion" or just fallback.
+        # For now, let's just return what we have in the DB.
         
-        results = db.query(AssessmentSessionQuestion, QuestionTemplate.topic)\
-            .join(QuestionTemplate, QuestionTemplate.template_id == AssessmentSessionQuestion.template_id)\
-            .filter(AssessmentSessionQuestion.session_id == active_session.id)\
-            .all()
-            
+        questions = db.query(AssessmentSessionQuestion).filter(
+            AssessmentSessionQuestion.session_id == active_session.id
+        ).all()
+        
         questions_response = []
-        for q, topic in results:
-            # Attach topic to the question object for Pydantic serialization
-            q.topic = topic
+        for q in questions:
+            # Try to fetch topic dynamically if possible, or leave null
+            # Optimization: could fetch in bulk. 
+            # For header display, let's try to lookup V2 first (most likely)
+            
+            # Simple heuristic: try to find V2
+            from app.modules.questions.models import QuestionGeneration
+            v2 = db.query(QuestionGeneration).filter(QuestionGeneration.template_id == q.template_id).first()
+            if v2 and v2.skill_name:
+                q.topic = v2.skill_name
+            else:
+                 # Try V1
+                 v1 = db.query(QuestionTemplate).filter(QuestionTemplate.template_id == q.template_id).first()
+                 if v1:
+                     q.topic = v1.topic
+            
             questions_response.append(q)
-        
-        # Format response
+
         return {
             "session_id": active_session.id,
             "questions": questions_response,
@@ -226,30 +429,72 @@ def start_assessment(
     if not grade_level:
          raise HTTPException(status_code=400, detail="Could not determine valid grade from student record")
          
-    # 3. Fetch Templates
-    # Active, Hard difficulty, matches grade
-    # grade_level is ARRAY(Integer), so we check if grade_level contains our grade
+    # 3. Fetch Templates (V2 and V1)
     
-    templates_query = db.query(QuestionTemplate).filter(
+    # --- V2 Templates (QuestionGeneration) ---
+    from app.modules.questions.models import QuestionGeneration
+    
+    # Prefer Hard, then Medium, then Easy
+    v2_query = db.query(QuestionGeneration).filter(
+        QuestionGeneration.grade == grade_level
+    )
+    v2_all = v2_query.all()
+    
+    # Filter by difficulty in memory or query (difficulty is text string like 'Hard', 'Medium')
+    v2_hard = [t for t in v2_all if 'hard' in t.difficulty.lower()]
+    v2_med = [t for t in v2_all if 'medium' in t.difficulty.lower()]
+    v2_easy = [t for t in v2_all if 'easy' in t.difficulty.lower()] # Fallback
+    
+    # --- V1 Templates (QuestionTemplate) ---
+    v1_query = db.query(QuestionTemplate).filter(
         QuestionTemplate.status == "active",
-        QuestionTemplate.difficulty.ilike("hard"),
         QuestionTemplate.grade_level.any(grade_level)
     )
+    v1_all = v1_query.all()
+    v1_hard = [t for t in v1_all if 'hard' in t.difficulty.lower()]
+    v1_med = [t for t in v1_all if 'medium' in t.difficulty.lower()]
     
-    templates = templates_query.all()
+    # Combine (Prioritize Hard -> Medium -> Easy)
+    # Wrap in a standardized dict structure to handle differences
     
-    if not templates:
-        # Fallback: Try Medium if no Hard questions found
-        templates = db.query(QuestionTemplate).filter(
-            QuestionTemplate.status == "active",
-            QuestionTemplate.difficulty.ilike("medium"),
-            QuestionTemplate.grade_level.any(grade_level)
-        ).all()
+    def normalize_v2(t):
+        return {
+            "id": t.template_id,
+            "source": "v2",
+            "topic": t.skill_name,
+            "difficulty": t.difficulty,
+            "code": t.question_template,
+            "answer_code": t.answer_template,
+            "type": t.type,
+            "obj": t
+        }
         
-    if not templates:
+    def normalize_v1(t):
+        return {
+            "id": t.template_id,
+            "source": "v1",
+            "topic": t.topic,
+            "difficulty": t.difficulty,
+            "code": t.dynamic_question,
+            "type": t.type,
+            "obj": t
+        }
+        
+    pool = []
+    pool.extend([normalize_v2(t) for t in v2_hard])
+    pool.extend([normalize_v1(t) for t in v1_hard])
+    
+    if len(pool) < 25:
+        pool.extend([normalize_v2(t) for t in v2_med])
+        pool.extend([normalize_v1(t) for t in v1_med])
+        
+    if len(pool) < 25:
+        pool.extend([normalize_v2(t) for t in v2_easy])
+        
+    if not pool:
         raise HTTPException(status_code=404, detail="No assessment questions available for this grade level")
         
-    # 4. Create Session
+    # Create Session
     session = AssessmentSession(
         student_id=student.id,
         status="PENDING",
@@ -260,32 +505,83 @@ def start_assessment(
     db.refresh(session)
     
     # 5. Generate 25 Questions
-    generated_questions = []
+    # Logic: Try to get unique TOPICS first, then fill up.
+    
     target_count = 25
     
-    # Select random templates, allowing repeats if specialized templates are few
-    import random
-    selected_templates = []
-    if templates:
-        for _ in range(target_count):
-            selected_templates.append(random.choice(templates))
+    # Group by topic
+    topic_map = {}
+    for item in pool:
+        t = item['topic']
+        if t not in topic_map:
+            topic_map[t] = []
+        topic_map[t].append(item)
         
-    for idx, template in enumerate(selected_templates):
+    # Select 25
+    selected_items = []
+    
+    # Round 1: Take 1 from each topic
+    topics = list(topic_map.keys())
+    random.shuffle(topics)
+    
+    for t in topics:
+        if len(selected_items) < target_count:
+            # Pick a random template from this topic
+            selected_items.append(random.choice(topic_map[t]))
+            
+    # Round 2: Fill remaining if needed
+    while len(selected_items) < target_count:
+        # Pick random topic, then random template
+        t = random.choice(topics)
+        selected_items.append(random.choice(topic_map[t]))
+        
+    generated_questions = []
+            
+    for idx, template_data in enumerate(selected_items):
         try:
-            # Execute generator
-            result = executor.execute_generator(template.dynamic_question)
+            result = {}
+            
+            # Execute based on source type
+            if template_data['source'] == 'v2':
+                q_code = template_data['code']
+                a_code = template_data.get('answer_code', '')
+                
+                # Cleanup markdown
+                if q_code.startswith("```python"): q_code = q_code.replace("```python", "").replace("```", "")
+                if a_code.startswith("```python"): a_code = a_code.replace("```python", "").replace("```", "")
+                
+                # Use sequential execution for V2 (shared context)
+                result = executor.execute_sequential([q_code, a_code])
+                
+            else: # v1
+                code = template_data['code']
+                if code.startswith("```python"): code = code.replace("```python", "").replace("```", "")
+                result = executor.execute_generator(code)
             
             question_text = result.get('question', '')
             answer_value = str(result.get('answer', ''))
-            question_type = result.get('type', template.type)
+            
+            # Type handling
+            q_type = result.get('type')
+            
+            # Infer MCQ if options exist
+            if 'options' in result and result['options'] and isinstance(result['options'], list):
+                # If explicit type is missing or generic, force MCQ
+                if not q_type or q_type == 'user_input':
+                    q_type = 'mcq'
+            
+            # Default if still nothing
+            if not q_type:
+                q_type = template_data['type'] or 'user_input'
+            
             options = json.dumps(result.get('options', [])) if 'options' in result else None
             
             # Create Session Question
             q = AssessmentSessionQuestion(
                 session_id=session.id,
-                template_id=template.template_id,
+                template_id=template_data['id'], 
                 question_html=question_text,
-                question_type=question_type,
+                question_type=q_type,
                 options=options,
                 correct_answer=answer_value,
                 student_answer=None,
@@ -294,12 +590,12 @@ def start_assessment(
             db.add(q)
             
             # Attach topic for response (transient)
-            q.topic = template.topic
+            q.topic = template_data['topic']
             
             generated_questions.append(q)
             
         except Exception as e:
-            print(f"Failed to generate question from template {template.template_id}: {e}")
+            print(f"Failed to generate question from template {template_data['id']} ({template_data['source']}): {e}")
             continue
             
     db.commit()
@@ -309,3 +605,75 @@ def start_assessment(
         "questions": generated_questions,
         "duration_minutes": 30
     }
+
+@router.post("/submit-assessment")
+def submit_assessment(
+    submission: AssessmentSubmission,
+    student: AssessmentStudent = Depends(get_current_student),
+    db: Session = Depends(get_db)
+):
+    """
+    Submit assessment answers. 
+    1. Updates student answers in AssessmentSessionQuestion
+    2. Auto-grading: Checks answers against correct_answer
+    3. Marks Session as COMPLETED
+    4. Records completed_at
+    """
+    
+    print(f"DEBUG: Submission Request - SessionID: {submission.session_id}, StudentID: {student.id}")
+    print(f"DEBUG: Answers Keys: {list(submission.answers.keys())}")
+    
+    # Check session
+    session = db.query(AssessmentSession).filter(
+        AssessmentSession.id == submission.session_id,
+        AssessmentSession.student_id == student.id
+    ).first()
+    
+    if not session:
+        print("DEBUG: Session not found entirely.")
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    print(f"DEBUG: Session Found - Status: {session.status}")
+    
+    if session.status not in ["PENDING", "IN_PROGRESS"]:
+        print(f"DEBUG: Session status invalid: {session.status}")
+        raise HTTPException(status_code=404, detail=f"Active session not found. Current status: {session.status}")
+        
+    # Process Answers
+    questions = db.query(AssessmentSessionQuestion).filter(
+        AssessmentSessionQuestion.session_id == session.id
+    ).all()
+    
+    for q in questions:
+        q_id_str = str(q.id)
+        if q_id_str in submission.answers:
+            student_a = submission.answers[q_id_str]
+            q.student_answer = student_a
+            
+            # Auto-grade
+            # Simple exact match for now. In future, we can use LLM grading or smarter comparison.
+            # Handle float comparison for numbers?
+            
+            is_correct = False
+            
+            correct = str(q.correct_answer).strip().lower()
+            given = str(student_a).strip().lower()
+            
+            if correct == given:
+                is_correct = True
+            else:
+                 # Try removing potential Markdown wrappers if exact match fails
+                 # e.g. "8.44" vs "**8.44**"
+                 import re
+                 c_clean = re.sub(r'[*_`]', '', correct)
+                 g_clean = re.sub(r'[*_`]', '', given)
+                 if c_clean == g_clean:
+                     is_correct = True
+            
+            q.is_correct = str(is_correct) # API expects string 'True'/'False' for now per legacy logic
+            
+    session.status = "COMPLETED"
+    session.completed_at = datetime.utcnow()
+    db.commit()
+    
+    return {"status": "success", "message": "Assessment submitted successfully"}
