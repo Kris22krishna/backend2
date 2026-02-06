@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, LogOut, FileText, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { Play, LogOut, FileText, CheckCircle, Clock } from 'lucide-react';
 import { api } from '../../services/api';
 import logo from '../../assets/logo.jpg';
 
@@ -109,7 +109,7 @@ const AssessmentStudentDashboard = () => {
                             >
                                 {isLoading ? (
                                     <>
-                                        <Loader2 className="h-5 w-5 animate-spin" />
+                                        <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                         Starting...
                                     </>
                                 ) : (
