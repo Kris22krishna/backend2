@@ -1,0 +1,139 @@
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, func, Text, JSON
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.orm import relationship
+from app.db.base import Base
+
+class QuestionTemplate(Base):
+    """
+    Store question templates created by interns.
+    Templates contain Python code that generates dynamic questions.
+    """
+    __tablename__ = "question_templates"
+    
+    template_id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Grade Assignment
+    grade_level = Column(ARRAY(Integer), nullable=False, index=True)     # 1-12 for student grade assignment
+    
+    # Categorization
+    module = Column(String, nullable=False, index=True)           # "Math Skill"
+    category = Column(String, nullable=False, index=True)         # "Fundamentals"
+    topic = Column(String, nullable=False)                        # "Addition"
+    subtopic = Column(String, nullable=False)                     # "Addition of 2 numbers"
+    
+    # Question Configuration
+    format = Column(String, nullable=False)                       # "format1: 22+22", "format2: word problem"
+    difficulty = Column(String, nullable=False, index=True)       # "easy", "medium", "hard" or range "1-20"
+    type = Column(String, nullable=False)                         # "mcq", "user_input", "image_based", "code_based"
+    
+    # Code & Logic
+    dynamic_question = Column(Text, nullable=False)               # Python code to generate question
+    logical_answer = Column(Text, nullable=False)                 # Python code to validate answer
+    
+    # Preview Data
+    preview_data = Column(JSON, nullable=True)                    # Stores template metadata for preview
+    preview_html = Column(Text, nullable=True)                    # Rendered HTML preview
+    
+    # Metadata
+    status = Column(String, default="draft", index=True)          # "draft", "active", "inactive"
+    created_by_user_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # UUID to match User model
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    generation_jobs = relationship("QuestionGenerationJob", back_populates="template")
+    generated_questions = relationship("GeneratedQuestion", back_populates="template")
+
+
+class QuestionGenerationJob(Base):
+    """
+    Track batch question generation requests.
+    Acts as an audit log for all generation activities.
+    """
+    __tablename__ = "question_generation_jobs"
+    
+    job_id = Column(Integer, primary_key=True, autoincrement=True)
+    template_id = Column(Integer, ForeignKey("question_templates.template_id"), nullable=False, index=True)
+    
+    # Generation Parameters
+    requested_count = Column(Integer, nullable=False)             # How many questions requested
+    generated_count = Column(Integer, default=0)                  # How many actually generated
+    generation_seed = Column(String, nullable=True)               # Random seed for reproducibility
+    generation_params = Column(JSON, nullable=True)               # Additional params (difficulty override, etc.)
+    
+    # Status Tracking
+    status = Column(String, default="pending", index=True)        # "pending", "processing", "completed", "failed"
+    created_by_user_id = Column(UUID(as_uuid=True), nullable=True, index=True)  # UUID to match User model
+    created_at = Column(DateTime, server_default=func.now())
+    completed_at = Column(DateTime, nullable=True)
+    
+    # Relationships
+    template = relationship("QuestionTemplate", back_populates="generation_jobs")
+    generated_questions = relationship("GeneratedQuestion", back_populates="job")
+
+
+class GeneratedQuestion(Base):
+    """
+    Store actual generated questions for student tests.
+    Each record is a unique question instance.
+    """
+    __tablename__ = "generated_questions"
+    
+    generated_question_id = Column(Integer, primary_key=True, autoincrement=True)
+    job_id = Column(Integer, ForeignKey("question_generation_jobs.job_id"), nullable=False, index=True)
+    template_id = Column(Integer, ForeignKey("question_templates.template_id"), nullable=False, index=True)
+    
+    # Question Content
+    question_html = Column(Text, nullable=False)                  # Rendered HTML question
+    answer_value = Column(String, nullable=False)                 # Correct answer
+    variables_used = Column(JSON, nullable=True)                  # Variables used in generation (for debugging)
+
+    # Metadata
+    difficulty_snapshot = Column(String, nullable=True)           # Difficulty at generation time
+    hash_signature = Column(String, nullable=True, index=True)    # Hash to detect duplicates
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relationships
+    job = relationship("QuestionGenerationJob", back_populates="generated_questions")
+    template = relationship("QuestionTemplate", back_populates="generated_questions")
+
+
+class SyllabusConfig(Base):
+    """
+    Store syllabus arrangement configuration per grade.
+    This allows manual ordering of topics and subtopics.
+    """
+    __tablename__ = "syllabus_configs"
+    
+    grade_level = Column(Integer, primary_key=True)  # 1-12
+    config = Column(JSON, nullable=False)            # JSON structure of ordered categories/topics
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class QuestionGeneration(Base):
+    """
+    New template model matching the question_generation database table.
+    Links to skills table for categorization.
+    """
+    __tablename__ = "question_generation"
+    
+    template_id = Column(Integer, primary_key=True, autoincrement=True)
+    skill_id = Column(Integer, nullable=False, index=True)  # References skills table
+    
+    # Denormalized from skill for quick access
+    grade = Column(Integer, nullable=False, index=True)
+    category = Column(Text, nullable=False)
+    skill_name = Column(Text, nullable=False)
+    
+    # Question Configuration
+    type = Column(Text, nullable=False)              # "MCQ", "User Input", "Image Based", "Code Based"
+    format = Column(Integer, nullable=False)         # Format identifier
+    difficulty = Column(Text, nullable=False)        # "Easy", "Medium", "Hard"
+    
+    # Code Templates (JSX/JavaScript code)
+    question_template = Column(Text, nullable=False)
+    answer_template = Column(Text, nullable=False)
+    solution_template = Column(Text, nullable=False)
+    
+    # Metadata
+    created_by_user_id = Column(UUID(as_uuid=True), nullable=True, index=True)

@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic-settings
+PyJWT
+passlib[bcrypt]
+bcrypt==4.0.1
+sqlalchemy
+psycopg2-binary
+requests
+python-multipart
+RestrictedPython
+email-validator
+python-dotenv
+google-cloud-storage
+openpyxl

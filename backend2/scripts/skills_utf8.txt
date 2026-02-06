@@ -1,0 +1,25 @@
+Found 20 skills (showing first 20):
+--------------------------------------------------------------------------------
+ID         | Grade      | Category             | Skill Name
+--------------------------------------------------------------------------------
+1          | 1          | Counting and numbe   | Counting review - up to 10
+2          | 1          | Counting and numbe   | Count to fill a ten frame
+3          | 1          | Counting and numbe   | Counting review - up to 20
+4          | 1          | Counting and numbe   | Counting tens and ones - up to 30
+5          | 1          | Counting and numbe   | Count on ten frames - up to 40
+6          | 1          | Counting and numbe   | Counting - up to 100
+7          | 1          | Counting and numbe   | Counting tens and ones - up to 99
+8          | 1          | Counting and numbe   | Counting by twos, fives and tens with pictures
+9          | 1          | Counting and numbe   | Counting by twos, fives and tens
+10         | 1          | Counting and numbe   | Counting forward and backward
+11         | 1          | Counting and numbe   | Number lines - up to 100
+12         | 1          | Counting and numbe   | Hundred chart
+13         | 1          | Counting and numbe   | Even or odd
+14         | 1          | Counting and numbe   | Identify numbers as even or odd
+15         | 1          | Counting and numbe   | Even or odd numbers on number lines
+16         | 1          | Counting and numbe   | Which even or odd number comes before or after?
+17         | 1          | Counting and numbe   | Skip-counting patterns - with tables
+18         | 1          | Counting and numbe   | Sequences - count up and down by 1, 2, 3, 5 and 10
+19         | 1          | Counting and numbe   | Sequences - count up and down by 100
+20         | 1          | Counting and numbe   | Ordinal numbers
+--------------------------------------------------------------------------------
