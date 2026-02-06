@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.modules.auth.schemas import UserRegister, UserLogin, UserResponse, AdminLogin, UploaderCreate, UploaderLogin, UploaderResponse, GoogleLogin
+from app.modules.auth.schemas import UserRegister, UserLogin, UserResponse, AdminLogin, UploaderCreate, UploaderLogin, UploaderResponse, GoogleLogin, AssessmentUploaderCreate, AssessmentUploaderLogin, AssessmentUploaderResponse
 from app.modules.auth.models import User, Credential, Tenant, School
 from app.modules.student.models import Student
 from app.modules.teacher.models import Teacher
@@ -451,3 +451,157 @@ def list_uploaders(
         })
         
     return results
+
+@router.post("/create-assessment-uploader", response_model=AssessmentUploaderResponse)
+def create_assessment_uploader(uploader_in: AssessmentUploaderCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Create a new Assessment Uploader. Only admins can do this.
+    Generates a random access code for the provided email.
+    """
+    try:
+        if current_user.user_type != "admin":
+             raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied. Only admins can create assessment uploaders."
+            )
+
+        # Generate access code
+        import random
+        import string
+        access_code = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        
+        # Ensure Default Tenant
+        tenant = db.query(Tenant).first()
+        if not tenant:
+             raise HTTPException(status_code=500, detail="System configuration error: No tenant found")
+
+        # Ensure Default School
+        school = db.query(School).filter(School.tenant_id == tenant.tenant_id).first()
+        if not school:
+            school = School(tenant_id=tenant.tenant_id, school_name="Default School", school_code="DEF_SCH", status="active")
+            db.add(school)
+            db.flush()
+
+        # Check if user already exists
+        existing_user = db.query(User).filter(User.email == uploader_in.email).first()
+        
+        if existing_user:
+             # If user exists, check if they already have 'assessment_uploader' credentials or role?
+             # For now, let's assume we are creating a new user or adding a credential to an existing one.
+             # Implementation choice: Check for credential.
+             existing_cred = db.query(Credential).filter(
+                 Credential.identifier == uploader_in.email,
+                 Credential.auth_type == 'assessment_code'
+             ).first()
+             
+             if existing_cred:
+                 raise HTTPException(status_code=400, detail="Assessment Uploader with this email already exists")
+                 
+             # If user exists but no credential, we could reuse the user, but User Type is single.
+             # So we must creating a NEW User if the existing user is NOT an assessment_uploader.
+             # Or we fail if email is taken.
+             # Let's fail if email is taken to match registration logic for now, unless we want to support multi-role.
+             # Given schema, User table has user_type. So we fail.
+             raise HTTPException(status_code=400, detail="Email already registered with another account type")
+
+        # Create User
+        new_user = User(
+            user_type="assessment_uploader",
+            first_name=uploader_in.email.split('@')[0],
+            last_name="(Assessment Uploader)",
+            display_name=uploader_in.email,
+            email=uploader_in.email,
+            status="active",
+            tenant_id=tenant.tenant_id,
+            school_id=school.school_id
+        )
+        db.add(new_user)
+        db.flush()
+
+        # Create Credential (auth_type='assessment_code')
+        new_cred = Credential(
+            user_id=new_user.user_id,
+            tenant_id=tenant.tenant_id,
+            auth_type="assessment_code",
+            identifier=uploader_in.email,
+            secret_hash=get_password_hash(access_code),
+            provider="local",
+            is_primary=True,
+            status="active"
+        )
+        db.add(new_cred)
+        
+        db.commit()
+
+        return AssessmentUploaderResponse(email=uploader_in.email, access_code=access_code)
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to create assessment uploader: {str(e)}")
+
+@router.post("/assessment-uploader-login")
+def assessment_uploader_login(login_in: AssessmentUploaderLogin, db: Session = Depends(get_db)):
+    """
+    Login for Assessment Uploaders using email and access code.
+    """
+    # Find credential
+    cred = db.query(Credential).filter(
+        Credential.identifier == login_in.email,
+        Credential.auth_type == "assessment_code"
+    ).first()
+    
+    if not cred or not verify_password(login_in.access_code, cred.secret_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or access code",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    if cred.status != "active":
+         raise HTTPException(status_code=400, detail="User account is inactive")
+         
+    # Generate Token
+    token = create_access_token(
+        user_id=str(cred.user_id),
+        tenant_id=str(cred.tenant_id) if cred.tenant_id else "default"
+    )
+    
+    # Fetch User
+    user = db.query(User).filter(User.user_id == cred.user_id).first()
+    
+    return {
+        "access_token": token, 
+        "token_type": "bearer", 
+        "user_type": "assessment_uploader", 
+        "username": user.display_name,
+        "email": user.email
+    }
+
+@router.get("/assessment-uploaders")
+def list_assessment_uploaders(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    List all assessment uploaders. Admin only.
+    """
+    if current_user.user_type != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Access denied"
+        )
+    
+    uploaders = db.query(User).filter(User.user_type == "assessment_uploader").all()
+    
+    results = []
+    for u in uploaders:
+        results.append({
+            "user_id": str(u.user_id),
+            "email": u.email,
+            "name": u.display_name,
+            "created_at": u.created_at.isoformat() if u.created_at else None
+        })
+        
+    return results
+

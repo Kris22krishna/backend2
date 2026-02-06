@@ -791,51 +791,51 @@ def get_practice_questions_by_skill(
     Generate practice questions for a specific skill (PUBLIC/STUDENT).
     Finds the latest active v2 template for the skill and generates questions.
     """
-    # Find templates for this skill
-    templates = db.query(QuestionGeneration).filter(
-        QuestionGeneration.skill_id == skill_id
-    ).order_by(QuestionGeneration.template_id.desc()).all()
-    
-    if not templates:
-        return schemas.APIResponse(
-            success=False,
-            data=None,
-            error=schemas.ErrorDetail(
-                code="TEMPLATE_NOT_FOUND",
-                message=f"No practice content found for skill ID {skill_id}"
-            ).dict()
-        )
-
-    # Detect available types
-    available_types = list(set([t.type for t in templates if t.type]))
-    
-    # Logic: If type NOT specified and we have multiple distinct types, ask user to choose
-    # Exception: If count=1 (Preview Mode), just pick a default/latest instead of asking
-    if count > 1 and not type and len(available_types) > 1:
-        # Check if they are actually different types (ignore case)
-        unique_types_normalized = set(t.upper() for t in available_types)
-        if len(unique_types_normalized) > 1:
+    try:
+        # Find templates for this skill
+        templates = db.query(QuestionGeneration).filter(
+            QuestionGeneration.skill_id == skill_id
+        ).order_by(QuestionGeneration.template_id.desc()).all()
+        
+        if not templates:
             return schemas.APIResponse(
-                success=True,
-                data={
-                    "selection_needed": True,
-                    "available_types": available_types,
-                    "skill_id": skill_id
-                },
-                error=None
+                success=False,
+                data=None,
+                error=schemas.ErrorDetail(
+                    code="TEMPLATE_NOT_FOUND",
+                    message=f"No practice content found for skill ID {skill_id}"
+                ).dict()
             )
 
-    # Select template
-    template = None
-    if type:
-        # Find first template matching requested type
-        template = next((t for t in templates if t.type and t.type.upper() == type.upper()), None)
-    
-    if not template:
-        # Fallback: Prioritize MCQ if available, else latest
-        template = next((t for t in templates if t.type and t.type.upper() == 'MCQ'), templates[0])
+        # Detect available types
+        available_types = list(set([t.type for t in templates if t.type]))
         
-    try:
+        # Logic: If type NOT specified and we have multiple distinct types, ask user to choose
+        # Exception: If count=1 (Preview Mode), just pick a default/latest instead of asking
+        if count > 1 and not type and len(available_types) > 1:
+            # Check if they are actually different types (ignore case)
+            unique_types_normalized = set(t.upper() for t in available_types)
+            if len(unique_types_normalized) > 1:
+                return schemas.APIResponse(
+                    success=True,
+                    data={
+                        "selection_needed": True,
+                        "available_types": available_types,
+                        "skill_id": skill_id
+                    },
+                    error=None
+                )
+
+        # Select template
+        template = None
+        if type:
+            # Find first template matching requested type
+            template = next((t for t in templates if t.type and t.type.upper() == type.upper()), None)
+        
+        if not template:
+            # Fallback: Prioritize MCQ if available, else latest
+            template = next((t for t in templates if t.type and t.type.upper() == 'MCQ'), templates[0])
+            
         preview_result = service.QuestionGenerationService.preview_generation_v2(
             db=db,
             question_code=template.question_template,
@@ -861,6 +861,8 @@ def get_practice_questions_by_skill(
             error=None
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return schemas.APIResponse(
             success=False,
             data=None,

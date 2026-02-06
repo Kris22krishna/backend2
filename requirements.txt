@@ -12,3 +12,4 @@ RestrictedPython
 email-validator
 python-dotenv
 google-cloud-storage
+openpyxl

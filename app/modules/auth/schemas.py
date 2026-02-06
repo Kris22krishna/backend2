@@ -56,3 +56,15 @@ class UploaderLogin(BaseModel):
 class UploaderResponse(BaseModel):
     username: str
     access_code: str
+
+class AssessmentUploaderCreate(BaseModel):
+    email: EmailStr
+
+class AssessmentUploaderLogin(BaseModel):
+    email: EmailStr
+    access_code: str
+
+class AssessmentUploaderResponse(BaseModel):
+    email: str
+    access_code: str
+

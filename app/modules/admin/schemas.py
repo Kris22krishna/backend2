@@ -91,3 +91,32 @@ class AdminDashboardOverview(BaseModel):
     lowAccuracyQuestions: List[QuestionHealthItem]
     mostUsedQuestions: List[QuestionHealthItem]
     recentlyAddedQuestions: List[QuestionHealthItem]
+
+# User list schemas for admin pages
+class UserListResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    status: str
+    joinedDate: Optional[datetime] = None
+    lastActive: Optional[str] = None
+
+class TeacherListResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    status: str
+    joinedDate: Optional[datetime] = None
+    lastActive: Optional[str] = None
+    studentCount: int = 0
+    classesCount: int = 0
+
+class ParentListResponse(BaseModel):
+    id: str
+    name: str
+    email: str
+    status: str
+    joinedDate: Optional[datetime] = None
+    lastActive: Optional[str] = None
+    childrenCount: int = 0
+

@@ -31,6 +31,7 @@ def get_admin_dashboard_overview(
     total_students = db.query(User).filter(User.user_type == 'student').count()
     total_teachers = db.query(User).filter(User.user_type == 'teacher').count()
     total_parents = db.query(User).filter(User.user_type == 'parent').count()
+    total_uploaders = db.query(User).filter(User.user_type == 'uploader').count()
     
     # Count questions
     total_templates = db.query(QuestionTemplate).count()
@@ -49,12 +50,16 @@ def get_admin_dashboard_overview(
         and_(User.user_type == 'parent', User.created_at >= seven_days_ago)
     ).count()
     
+    uploaders_this_week = db.query(User).filter(
+        and_(User.user_type == 'uploader', User.created_at >= seven_days_ago)
+    ).count()
+    
     # Platform Health Stats
     platform_health = [
         PlatformHealthStat(title="Total Students", value=total_students, delta=f"+{students_today} today", deltaType="positive"),
         PlatformHealthStat(title="Total Teachers", value=total_teachers, delta=f"+{teachers_this_week} this week", deltaType="positive"),
         PlatformHealthStat(title="Total Parents", value=total_parents, delta=f"+{parents_this_week} this week", deltaType="positive"),
-        PlatformHealthStat(title="Guest Users Today", value=312, delta="+45% from yesterday", deltaType="positive"),
+        PlatformHealthStat(title="Total Uploaders", value=total_uploaders, delta=f"+{uploaders_this_week} this week", deltaType="positive"),
         PlatformHealthStat(title="Quizzes Attempted", value=total_generated, delta="+15% from yesterday", deltaType="positive"),
         PlatformHealthStat(title="Questions in Bank", value=total_templates, delta="+85 this week", deltaType="positive"),
     ]
@@ -211,3 +216,115 @@ def get_dashboard_students(
             joinedDate=student.created_at
         ))
     return response
+
+@router.get("/teachers")
+def get_dashboard_teachers(
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get list of all teachers with their details"""
+    teachers = db.query(User).filter(User.user_type == 'teacher').limit(limit).all()
+    
+    response = []
+    for teacher in teachers:
+        name = teacher.display_name or f"{teacher.first_name or ''} {teacher.last_name or ''}".strip() or "Unknown"
+        last_active = "Never"
+        if teacher.last_login_at:
+            diff = datetime.utcnow() - teacher.last_login_at
+            if diff.days == 0:
+                last_active = "Today"
+            elif diff.days == 1:
+                last_active = "Yesterday"
+            elif diff.days < 7:
+                last_active = f"{diff.days}d ago"
+            else:
+                last_active = f"{diff.days // 7}w ago"
+        
+        response.append({
+            "id": str(teacher.user_id),
+            "name": name,
+            "email": teacher.email or "N/A",
+            "status": "active",
+            "joinedDate": teacher.created_at.isoformat() if teacher.created_at else None,
+            "lastActive": last_active,
+            "studentCount": 0,  # Would need Teacher model to get actual count
+            "classesCount": 0
+        })
+    return response
+
+@router.get("/parents")
+def get_dashboard_parents(
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get list of all parents with their details"""
+    from app.modules.parent.models import ParentChild
+    
+    parents = db.query(User).filter(User.user_type == 'parent').limit(limit).all()
+    
+    response = []
+    for parent in parents:
+        name = parent.display_name or f"{parent.first_name or ''} {parent.last_name or ''}".strip() or "Unknown"
+        last_active = "Never"
+        if parent.last_login_at:
+            diff = datetime.utcnow() - parent.last_login_at
+            if diff.days == 0:
+                last_active = "Today"
+            elif diff.days == 1:
+                last_active = "Yesterday"
+            elif diff.days < 7:
+                last_active = f"{diff.days}d ago"
+            else:
+                last_active = f"{diff.days // 7}w ago"
+        
+        # Count linked children
+        children_count = db.query(ParentChild).filter(ParentChild.parent_id == parent.user_id).count()
+        
+        response.append({
+            "id": str(parent.user_id),
+            "name": name,
+            "email": parent.email or "N/A",
+            "status": "active",
+            "joinedDate": parent.created_at.isoformat() if parent.created_at else None,
+            "lastActive": last_active,
+            "childrenCount": children_count
+        })
+    return response
+
+@router.get("/guests")
+def get_dashboard_guests(
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get list of all guest users"""
+    from app.modules.guest.models import GuestSession
+    
+    # Get recent guest sessions
+    guests = db.query(GuestSession).order_by(GuestSession.created_at.desc()).limit(limit).all()
+    
+    response = []
+    for guest in guests:
+        last_active = "Never"
+        if guest.last_activity_at or guest.created_at:
+            activity_time = guest.last_activity_at or guest.created_at
+            diff = datetime.utcnow() - activity_time
+            if diff.days == 0:
+                last_active = "Today"
+            elif diff.days == 1:
+                last_active = "Yesterday"
+            elif diff.days < 7:
+                last_active = f"{diff.days}d ago"
+            else:
+                last_active = f"{diff.days // 7}w ago"
+        
+        response.append({
+            "id": str(guest.session_id),
+            "name": f"Guest {str(guest.session_id)[:8]}",
+            "email": "N/A (Guest)",
+            "status": "guest",
+            "joinedDate": guest.created_at.isoformat() if guest.created_at else None,
+            "lastActive": last_active,
+            "quizzesAttempted": guest.questions_attempted or 0
+        })
+    return response
+

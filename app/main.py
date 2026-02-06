@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.modules.auth.router import router as auth_router
 from app.modules.demo.router import router as demo_router
+from app.modules.assessment_integration.router import router as assessment_integration_router
 from app.modules.student.router import router as student_router
 from app.modules.profile.router import router as profile_router
 from app.modules.teacher.router import router as teacher_router
@@ -58,6 +59,7 @@ api_router.include_router(reports_router)
 api_router.include_router(dashboard_router)  # Has /admin prefix built-in
 api_router.include_router(skills_router)
 api_router.include_router(new_templates_router)
+api_router.include_router(assessment_integration_router)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
