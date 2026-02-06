@@ -429,33 +429,38 @@ def start_assessment(
     if not grade_level:
          raise HTTPException(status_code=400, detail="Could not determine valid grade from student record")
          
-    # 3. Fetch Templates (V2 and V1)
+    # 3. Define target distribution based on grade
+    # Grades 1-5: 18 mcq, 7 input
+    # Grades 6-8: 13 mcq, 12 input
+    # Grades 9-10: 10 mcq, 15 input
     
-    # --- V2 Templates (QuestionGeneration) ---
+    if grade_level <= 5:
+        target_mcq = 18
+        target_input = 7
+    elif grade_level <= 8:
+        target_mcq = 13
+        target_input = 12
+    else:
+        target_mcq = 10
+        target_input = 15
+        
+    total_target = target_mcq + target_input
+    
+    # 4. Fetch Templates (Strictly Easy)
     from app.modules.questions.models import QuestionGeneration
     
-    # Prefer Hard, then Medium, then Easy
-    v2_query = db.query(QuestionGeneration).filter(
-        QuestionGeneration.grade == grade_level
-    )
-    v2_all = v2_query.all()
+    # Fetch Easy V2 Templates
+    v2_easy = db.query(QuestionGeneration).filter(
+        QuestionGeneration.grade == grade_level,
+        QuestionGeneration.difficulty.ilike('%easy%')
+    ).all()
     
-    # Filter by difficulty in memory or query (difficulty is text string like 'Hard', 'Medium')
-    v2_hard = [t for t in v2_all if 'hard' in t.difficulty.lower()]
-    v2_med = [t for t in v2_all if 'medium' in t.difficulty.lower()]
-    v2_easy = [t for t in v2_all if 'easy' in t.difficulty.lower()] # Fallback
-    
-    # --- V1 Templates (QuestionTemplate) ---
-    v1_query = db.query(QuestionTemplate).filter(
+    # Fetch Easy V1 Templates
+    v1_easy = db.query(QuestionTemplate).filter(
         QuestionTemplate.status == "active",
-        QuestionTemplate.grade_level.any(grade_level)
-    )
-    v1_all = v1_query.all()
-    v1_hard = [t for t in v1_all if 'hard' in t.difficulty.lower()]
-    v1_med = [t for t in v1_all if 'medium' in t.difficulty.lower()]
-    
-    # Combine (Prioritize Hard -> Medium -> Easy)
-    # Wrap in a standardized dict structure to handle differences
+        QuestionTemplate.grade_level.any(grade_level),
+        QuestionTemplate.difficulty.ilike('%easy%')
+    ).all()
     
     def normalize_v2(t):
         return {
@@ -479,21 +484,52 @@ def start_assessment(
             "type": t.type,
             "obj": t
         }
-        
-    pool = []
-    pool.extend([normalize_v2(t) for t in v2_hard])
-    pool.extend([normalize_v1(t) for t in v1_hard])
+
+    # Categorize pools by type
+    mcq_pool = []
+    input_pool = []
     
-    if len(pool) < 25:
-        pool.extend([normalize_v2(t) for t in v2_med])
-        pool.extend([normalize_v1(t) for t in v1_med])
-        
-    if len(pool) < 25:
-        pool.extend([normalize_v2(t) for t in v2_easy])
-        
-    if not pool:
+    for t in v2_easy:
+        norm = normalize_v2(t)
+        q_type = norm['type'].lower() if norm['type'] else ""
+        if q_type == 'mcq':
+            mcq_pool.append(norm)
+        else:
+            input_pool.append(norm)
+            
+    for t in v1_easy:
+        norm = normalize_v1(t)
+        q_type = norm['type'].lower() if norm['type'] else ""
+        if q_type == 'mcq':
+            mcq_pool.append(norm)
+        else:
+            input_pool.append(norm)
+
+    # Fallback: if easy pool is too small, we might need to take other difficulties 
+    # but the user said "use the easy templates already there", implying they exist.
+    # To be safe, if we are short, we'll search for others but warn.
+    if len(mcq_pool) < target_mcq or len(input_pool) < target_input:
+        print(f"DEBUG: Shortage in Easy templates. MCQ: {len(mcq_pool)}/{target_mcq}, Input: {len(input_pool)}/{target_input}")
+        # Fallback to medium if really needed to maintain the 25 count
+        if len(mcq_pool) < target_mcq:
+            v2_med_mcq = db.query(QuestionGeneration).filter(
+                QuestionGeneration.grade == grade_level,
+                QuestionGeneration.difficulty.ilike('%medium%'),
+                QuestionGeneration.type == 'mcq'
+            ).all()
+            mcq_pool.extend([normalize_v2(t) for t in v2_med_mcq])
+            
+        if len(input_pool) < target_input:
+            v2_med_input = db.query(QuestionGeneration).filter(
+                QuestionGeneration.grade == grade_level,
+                QuestionGeneration.difficulty.ilike('%medium%'),
+                QuestionGeneration.type != 'mcq'
+            ).all()
+            input_pool.extend([normalize_v2(t) for t in v2_med_input])
+
+    if not mcq_pool and not input_pool:
         raise HTTPException(status_code=404, detail="No assessment questions available for this grade level")
-        
+
     # Create Session
     session = AssessmentSession(
         student_id=student.id,
@@ -504,37 +540,55 @@ def start_assessment(
     db.commit()
     db.refresh(session)
     
-    # 5. Generate 25 Questions
-    # Logic: Try to get unique TOPICS first, then fill up.
-    
-    target_count = 25
-    
-    # Group by topic
-    topic_map = {}
-    for item in pool:
-        t = item['topic']
-        if t not in topic_map:
-            topic_map[t] = []
-        topic_map[t].append(item)
+    # 5. Select items while maintaining topic diversity
+    def select_from_pool(pool, count):
+        if not pool: return []
+        if len(pool) <= count: return pool
         
-    # Select 25
-    selected_items = []
-    
-    # Round 1: Take 1 from each topic
-    topics = list(topic_map.keys())
-    random.shuffle(topics)
-    
-    for t in topics:
-        if len(selected_items) < target_count:
-            # Pick a random template from this topic
-            selected_items.append(random.choice(topic_map[t]))
+        # Group by topic
+        topic_map = {}
+        for item in pool:
+            t = item['topic']
+            if t not in topic_map:
+                topic_map[t] = []
+            topic_map[t].append(item)
             
-    # Round 2: Fill remaining if needed
-    while len(selected_items) < target_count:
-        # Pick random topic, then random template
-        t = random.choice(topics)
-        selected_items.append(random.choice(topic_map[t]))
+        selected = []
+        topics = list(topic_map.keys())
+        random.shuffle(topics)
         
+        # Round 1: Unique topics
+        for t in topics:
+            if len(selected) < count:
+                selected.append(random.choice(topic_map[t]))
+                
+        # Round 2: Fill rest
+        while len(selected) < count:
+            t = random.choice(topics)
+            # Find an item not already selected if possible
+            available = [i for i in topic_map[t] if i not in selected]
+            if available:
+                selected.append(random.choice(available))
+            else:
+                selected.append(random.choice(topic_map[t]))
+        
+        return selected
+
+    selected_items = []
+    selected_items.extend(select_from_pool(mcq_pool, target_mcq))
+    selected_items.extend(select_from_pool(input_pool, target_input))
+    
+    # Last check if we are still short due to empty pools
+    if len(selected_items) < total_target:
+        # Fill from whichever pool has more
+        remaining = total_target - len(selected_items)
+        overshot_pool = mcq_pool if len(mcq_pool) > target_mcq else input_pool
+        # (Actually, we just take anything left from both)
+        extra_candidates = [i for i in (mcq_pool + input_pool) if i not in selected_items]
+        if extra_candidates:
+            random.shuffle(extra_candidates)
+            selected_items.extend(extra_candidates[:remaining])
+
     generated_questions = []
             
     for idx, template_data in enumerate(selected_items):
@@ -561,18 +615,19 @@ def start_assessment(
             question_text = result.get('question', '')
             answer_value = str(result.get('answer', ''))
             
-            # Type handling
+            # Type handling (ensure lowercase for DB consistency if needed)
             q_type = result.get('type')
+            if q_type: q_type = q_type.lower()
             
             # Infer MCQ if options exist
             if 'options' in result and result['options'] and isinstance(result['options'], list):
-                # If explicit type is missing or generic, force MCQ
                 if not q_type or q_type == 'user_input':
                     q_type = 'mcq'
             
             # Default if still nothing
             if not q_type:
-                q_type = template_data['type'] or 'user_input'
+                orig_type = template_data['type']
+                q_type = orig_type.lower() if orig_type else 'user_input'
             
             options = json.dumps(result.get('options', [])) if 'options' in result else None
             
