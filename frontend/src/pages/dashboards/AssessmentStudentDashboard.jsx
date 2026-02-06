@@ -25,15 +25,17 @@ const AssessmentStudentDashboard = () => {
     }, [navigate]);
 
     const handleStartAssessment = async () => {
+        console.log("DEBUG: handleStartAssessment clicked. isLoading:", isLoading);
         if (isLoading) return;
         setIsLoading(true);
         try {
             const data = await api.startAssessment();
+            console.log("DEBUG: startAssessment data received:", data);
             if (data && data.questions) {
                 navigate('/assessment-runner', { state: data });
             }
         } catch (error) {
-            console.error(error);
+            console.error("DEBUG: startAssessment error:", error);
             alert("Failed to start assessment: " + error.message);
         } finally {
             setIsLoading(false);
