@@ -429,106 +429,183 @@ def start_assessment(
     if not grade_level:
          raise HTTPException(status_code=400, detail="Could not determine valid grade from student record")
          
-    # 3. Define target distribution based on grade
-    # Grades 1-5: 18 mcq, 7 input
-    # Grades 6-8: 13 mcq, 12 input
-    # Grades 9-10: 10 mcq, 15 input
+    # 3. Define Selection Logic
+    selected_items = []
     
-    if grade_level <= 5:
-        target_mcq = 18
-        target_input = 7
-    elif grade_level <= 8:
-        target_mcq = 13
-        target_input = 12
+    # SPECIAL HANDLING FOR GRADE 7
+    if grade_level == 7:
+        from app.modules.assessment_integration.grade7_blueprint import GRADE_7_TEMPLATE_IDS
+        from app.modules.questions.models import QuestionGeneration
+
+        # Fetch the specific 25 templates
+        templates = db.query(QuestionGeneration).filter(
+            QuestionGeneration.template_id.in_(GRADE_7_TEMPLATE_IDS)
+        ).all()
+        
+        # Verify we have all of them (or as many as possible)
+        if not templates:
+             raise HTTPException(status_code=404, detail="Grade 7 assessment templates not found")
+             
+        # Normalize to standard format
+        for t in templates:
+            selected_items.append({
+                "id": t.template_id,
+                "source": "v2",
+                "topic": t.skill_name,
+                "difficulty": t.difficulty,
+                "code": t.question_template,
+                "answer_code": t.answer_template,
+                "type": t.type,
+                "obj": t
+            })
+            
+        # Shuffle to randomize order
+        random.shuffle(selected_items)
+        
     else:
-        target_mcq = 10
-        target_input = 15
-        
-    total_target = target_mcq + target_input
-    
-    # 4. Fetch Templates (Strictly Easy)
-    from app.modules.questions.models import QuestionGeneration
-    
-    # Fetch Easy V2 Templates
-    v2_easy = db.query(QuestionGeneration).filter(
-        QuestionGeneration.grade == grade_level,
-        QuestionGeneration.difficulty.ilike('%easy%')
-    ).all()
-    
-    # Fetch Easy V1 Templates
-    v1_easy = db.query(QuestionTemplate).filter(
-        QuestionTemplate.status == "active",
-        QuestionTemplate.grade_level.any(grade_level),
-        QuestionTemplate.difficulty.ilike('%easy%')
-    ).all()
-    
-    def normalize_v2(t):
-        return {
-            "id": t.template_id,
-            "source": "v2",
-            "topic": t.skill_name,
-            "difficulty": t.difficulty,
-            "code": t.question_template,
-            "answer_code": t.answer_template,
-            "type": t.type,
-            "obj": t
-        }
-        
-    def normalize_v1(t):
-        return {
-            "id": t.template_id,
-            "source": "v1",
-            "topic": t.topic,
-            "difficulty": t.difficulty,
-            "code": t.dynamic_question,
-            "type": t.type,
-            "obj": t
-        }
-
-    # Categorize pools by type
-    mcq_pool = []
-    input_pool = []
-    
-    for t in v2_easy:
-        norm = normalize_v2(t)
-        q_type = norm['type'].lower() if norm['type'] else ""
-        if q_type == 'mcq':
-            mcq_pool.append(norm)
+        # STANDARD LOGIC FOR OTHER GRADES
+        if grade_level <= 5:
+            target_mcq = 18
+            target_input = 7
+        elif grade_level <= 8:
+            target_mcq = 13
+            target_input = 12
         else:
-            input_pool.append(norm)
+            target_mcq = 10
+            target_input = 15
             
-    for t in v1_easy:
-        norm = normalize_v1(t)
-        q_type = norm['type'].lower() if norm['type'] else ""
-        if q_type == 'mcq':
-            mcq_pool.append(norm)
-        else:
-            input_pool.append(norm)
-
-    # Fallback: if easy pool is too small, we might need to take other difficulties 
-    # but the user said "use the easy templates already there", implying they exist.
-    # To be safe, if we are short, we'll search for others but warn.
-    if len(mcq_pool) < target_mcq or len(input_pool) < target_input:
-        print(f"DEBUG: Shortage in Easy templates. MCQ: {len(mcq_pool)}/{target_mcq}, Input: {len(input_pool)}/{target_input}")
-        # Fallback to medium if really needed to maintain the 25 count
-        if len(mcq_pool) < target_mcq:
-            v2_med_mcq = db.query(QuestionGeneration).filter(
-                QuestionGeneration.grade == grade_level,
-                QuestionGeneration.difficulty.ilike('%medium%'),
-                QuestionGeneration.type == 'mcq'
-            ).all()
-            mcq_pool.extend([normalize_v2(t) for t in v2_med_mcq])
+        total_target = target_mcq + target_input
+        
+        # 4. Fetch Templates (Strictly Easy)
+        from app.modules.questions.models import QuestionGeneration
+        
+        # Fetch Easy V2 Templates
+        v2_easy = db.query(QuestionGeneration).filter(
+            QuestionGeneration.grade == grade_level,
+            QuestionGeneration.difficulty.ilike('%easy%')
+        ).all()
+        
+        # Fetch Easy V1 Templates
+        v1_easy = db.query(QuestionTemplate).filter(
+            QuestionTemplate.status == "active",
+            QuestionTemplate.grade_level.any(grade_level),
+            QuestionTemplate.difficulty.ilike('%easy%')
+        ).all()
+        
+        def normalize_v2(t):
+            return {
+                "id": t.template_id,
+                "source": "v2",
+                "topic": t.skill_name,
+                "difficulty": t.difficulty,
+                "code": t.question_template,
+                "answer_code": t.answer_template,
+                "type": t.type,
+                "obj": t
+            }
             
-        if len(input_pool) < target_input:
-            v2_med_input = db.query(QuestionGeneration).filter(
-                QuestionGeneration.grade == grade_level,
-                QuestionGeneration.difficulty.ilike('%medium%'),
-                QuestionGeneration.type != 'mcq'
-            ).all()
-            input_pool.extend([normalize_v2(t) for t in v2_med_input])
-
-    if not mcq_pool and not input_pool:
-        raise HTTPException(status_code=404, detail="No assessment questions available for this grade level")
+        def normalize_v1(t):
+            return {
+                "id": t.template_id,
+                "source": "v1",
+                "topic": t.topic,
+                "difficulty": t.difficulty,
+                "code": t.dynamic_question,
+                "type": t.type,
+                "obj": t
+            }
+    
+        # Categorize pools by type
+        mcq_pool = []
+        input_pool = []
+        
+        for t in v2_easy:
+            norm = normalize_v2(t)
+            q_type = norm['type'].lower() if norm['type'] else ""
+            if q_type == 'mcq':
+                mcq_pool.append(norm)
+            else:
+                input_pool.append(norm)
+                
+        for t in v1_easy:
+            norm = normalize_v1(t)
+            q_type = norm['type'].lower() if norm['type'] else ""
+            if q_type == 'mcq':
+                mcq_pool.append(norm)
+            else:
+                input_pool.append(norm)
+    
+        # Fallback: if easy pool is too small, we might need to take other difficulties 
+        # but the user said "use the easy templates already there", implying they exist.
+        # To be safe, if we are short, we'll search for others but warn.
+        if len(mcq_pool) < target_mcq or len(input_pool) < target_input:
+            print(f"DEBUG: Shortage in Easy templates. MCQ: {len(mcq_pool)}/{target_mcq}, Input: {len(input_pool)}/{target_input}")
+            # Fallback to medium if really needed to maintain the 25 count
+            if len(mcq_pool) < target_mcq:
+                v2_med_mcq = db.query(QuestionGeneration).filter(
+                    QuestionGeneration.grade == grade_level,
+                    QuestionGeneration.difficulty.ilike('%medium%'),
+                    QuestionGeneration.type == 'mcq'
+                ).all()
+                mcq_pool.extend([normalize_v2(t) for t in v2_med_mcq])
+                
+            if len(input_pool) < target_input:
+                v2_med_input = db.query(QuestionGeneration).filter(
+                    QuestionGeneration.grade == grade_level,
+                    QuestionGeneration.difficulty.ilike('%medium%'),
+                    QuestionGeneration.type != 'mcq'
+                ).all()
+                input_pool.extend([normalize_v2(t) for t in v2_med_input])
+    
+        if not mcq_pool and not input_pool:
+            raise HTTPException(status_code=404, detail="No assessment questions available for this grade level")
+    
+        # 5. Select items while maintaining topic diversity
+        def select_from_pool(pool, count):
+            if not pool: return []
+            if len(pool) <= count: return pool
+            
+            # Group by topic
+            topic_map = {}
+            for item in pool:
+                t = item['topic']
+                if t not in topic_map:
+                    topic_map[t] = []
+                topic_map[t].append(item)
+                
+            selected = []
+            topics = list(topic_map.keys())
+            random.shuffle(topics)
+            
+            # Round 1: Unique topics
+            for t in topics:
+                if len(selected) < count:
+                    selected.append(random.choice(topic_map[t]))
+                    
+            # Round 2: Fill rest
+            while len(selected) < count:
+                t = random.choice(topics)
+                # Find an item not already selected if possible
+                available = [i for i in topic_map[t] if i not in selected]
+                if available:
+                    selected.append(random.choice(available))
+                else:
+                    selected.append(random.choice(topic_map[t]))
+            
+            return selected
+    
+        selected_items.extend(select_from_pool(mcq_pool, target_mcq))
+        selected_items.extend(select_from_pool(input_pool, target_input))
+        
+        # Last check if we are still short due to empty pools
+        if len(selected_items) < total_target:
+            # Fill from whichever pool has more
+            remaining = total_target - len(selected_items)
+            # (Actually, we just take anything left from both)
+            extra_candidates = [i for i in (mcq_pool + input_pool) if i not in selected_items]
+            if extra_candidates:
+                random.shuffle(extra_candidates)
+                selected_items.extend(extra_candidates[:remaining])
 
     # Create Session
     session = AssessmentSession(
@@ -540,55 +617,6 @@ def start_assessment(
     db.commit()
     db.refresh(session)
     
-    # 5. Select items while maintaining topic diversity
-    def select_from_pool(pool, count):
-        if not pool: return []
-        if len(pool) <= count: return pool
-        
-        # Group by topic
-        topic_map = {}
-        for item in pool:
-            t = item['topic']
-            if t not in topic_map:
-                topic_map[t] = []
-            topic_map[t].append(item)
-            
-        selected = []
-        topics = list(topic_map.keys())
-        random.shuffle(topics)
-        
-        # Round 1: Unique topics
-        for t in topics:
-            if len(selected) < count:
-                selected.append(random.choice(topic_map[t]))
-                
-        # Round 2: Fill rest
-        while len(selected) < count:
-            t = random.choice(topics)
-            # Find an item not already selected if possible
-            available = [i for i in topic_map[t] if i not in selected]
-            if available:
-                selected.append(random.choice(available))
-            else:
-                selected.append(random.choice(topic_map[t]))
-        
-        return selected
-
-    selected_items = []
-    selected_items.extend(select_from_pool(mcq_pool, target_mcq))
-    selected_items.extend(select_from_pool(input_pool, target_input))
-    
-    # Last check if we are still short due to empty pools
-    if len(selected_items) < total_target:
-        # Fill from whichever pool has more
-        remaining = total_target - len(selected_items)
-        overshot_pool = mcq_pool if len(mcq_pool) > target_mcq else input_pool
-        # (Actually, we just take anything left from both)
-        extra_candidates = [i for i in (mcq_pool + input_pool) if i not in selected_items]
-        if extra_candidates:
-            random.shuffle(extra_candidates)
-            selected_items.extend(extra_candidates[:remaining])
-
     generated_questions = []
             
     for idx, template_data in enumerate(selected_items):

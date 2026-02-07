@@ -1,0 +1,27 @@
+ID     | Status  | Grade | Diff       | Gen      | Error
+--------------------------------------------------------------------------------
+123    | FOUND   | 7     | Easy       | SUCCESS  | 
+128    | FOUND   | 7     | Medium     | SUCCESS  | 
+499    | FOUND   | 7     | Easy       | SUCCESS  | 
+175    | FOUND   | 7     | Medium     | SUCCESS  | 
+207    | FOUND   | 7     | Medium     | SUCCESS  | 
+220    | FOUND   | 7     | Hard       | SUCCESS  | 
+249    | FOUND   | 7     | Medium     | SUCCESS  | 
+287    | FOUND   | 7     | Medium     | SUCCESS  | 
+296    | FOUND   | 7     | Medium     | SUCCESS  | 
+360    | FOUND   | 7     | Medium     | SUCCESS  | 
+397    | FOUND   | 7     | Medium     | SUCCESS  | 
+439    | FOUND   | 7     | Medium     | SUCCESS  | 
+504    | FOUND   | 7     | Hard       | SUCCESS  | 
+562    | FOUND   | 7     | Medium     | SUCCESS  | 
+613    | FOUND   | 7     | Medium     | SUCCESS  | 
+712    | FOUND   | 7     | Hard       | SUCCESS  | 
+776    | FOUND   | 7     | Hard       | SUCCESS  | 
+1573   | FOUND   | 7     | Hard       | SUCCESS  | 
+1067   | FOUND   | 7     | Hard       | SUCCESS  | 
+1681   | FOUND   | 7     | Easy       | SUCCESS  | 
+1735   | FOUND   | 7     | Medium     | SUCCESS  | 
+1937   | FOUND   | 7     | Medium     | SUCCESS  | 
+2041   | FOUND   | 7     | Hard       | SUCCESS  | 
+2335   | FOUND   | 7     | Hard       | SUCCESS  | 
+2451   | FOUND   | 7     | Hard       | SUCCESS  | 
