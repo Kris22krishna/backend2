@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import StreamingResponse
+
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.core.security import get_current_user
@@ -261,6 +263,71 @@ def get_reports(
         })
     
     return result
+
+@router.get("/reports/export")
+def export_reports(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Export completed assessment reports for students uploaded by the current uploader to Excel.
+    """
+    # 1. Fetch student IDs for this uploader
+    student_ids = db.query(AssessmentStudent.id).filter(
+        AssessmentStudent.uploaded_by_user_id == current_user.user_id
+    ).all()
+    student_ids = [s[0] for s in student_ids]
+
+    if not student_ids:
+        raise HTTPException(status_code=404, detail="No students found to export reports for.")
+
+    # 2. Fetch completed sessions for these students
+    reports = db.query(AssessmentSession).filter(
+        AssessmentSession.student_id.in_(student_ids),
+        AssessmentSession.status == "COMPLETED"
+    ).order_by(AssessmentSession.completed_at.desc()).all()
+
+    if not reports:
+        raise HTTPException(status_code=404, detail="No completed assessment reports found to export.")
+
+    # 3. Create Excel workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Assessment Reports"
+
+    # Headers
+    headers = ["Serial Number", "Student Name", "Grade", "School Name", "Completion Date", "Score", "Total Questions", "Accuracy (%)"]
+    ws.append(headers)
+
+    # Data
+    for report in reports:
+        correct_count = sum(1 for q in report.questions if q.is_correct == 'True')
+        total_questions = len(report.questions)
+        accuracy = (correct_count / total_questions * 100) if total_questions > 0 else 0
+        
+        ws.append([
+            report.student.serial_number,
+            report.student.name,
+            report.student.grade,
+            report.student.school_name,
+            report.completed_at.strftime("%Y-%m-%d %H:%M:%S") if report.completed_at else "N/A",
+            correct_count,
+            total_questions,
+            round(accuracy, 2)
+        ])
+
+    # Save to buffer
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"Assessment_Reports_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 @router.get("/reports/{session_id}", response_model=AssessmentSessionDetail)
 def get_report_detail(
