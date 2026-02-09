@@ -785,6 +785,7 @@ def get_practice_questions_by_skill(
     skill_id: int,
     count: int = Query(default=5, ge=1, le=20, description="Number of questions to generate"),
     type: Optional[str] = Query(None, description="Preferred format: MCQ or User Input"),
+    difficulty: Optional[str] = Query(None, description="Difficulty: Easy, Medium, or Hard"),
     db: Session = Depends(get_db)
 ):
     """
@@ -793,9 +794,18 @@ def get_practice_questions_by_skill(
     """
     try:
         # Find templates for this skill
-        templates = db.query(QuestionGeneration).filter(
+        query = db.query(QuestionGeneration).filter(
             QuestionGeneration.skill_id == skill_id
-        ).order_by(QuestionGeneration.template_id.desc()).all()
+        )
+        
+        # Apply difficulty filter if provided
+        if difficulty:
+            diff_query = query.filter(QuestionGeneration.difficulty.ilike(difficulty))
+            # Only use difficulty filter if it returns results
+            if diff_query.count() > 0:
+                query = diff_query
+        
+        templates = query.order_by(QuestionGeneration.template_id.desc()).all()
         
         if not templates:
             return schemas.APIResponse(
