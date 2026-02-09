@@ -10,6 +10,11 @@ class Settings(BaseSettings):
     GOOGLE_CLOUD_BUCKET_NAME: str = "your-bucket-name-here"
     GOOGLE_CLOUD_KEY_JSON: str | None = None
     
+    # Cache settings
+    CACHE_ENABLED: bool = True
+    CACHE_TTL: int = 300  # 5 minutes in seconds
+    CACHE_MAX_SIZE: int = 1000  # Maximum cache entries
+    
     class Config:
         env_file = ".env"
 
