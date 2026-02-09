@@ -809,10 +809,15 @@ def get_practice_questions_by_skill(
 
         # Detect available types
         available_types = list(set([t.type for t in templates if t.type]))
+        # Sort available_types to ensure MCQ is first if it exists
+        available_types.sort(key=lambda x: 0 if x.upper() == 'MCQ' else 1)
         
         # Logic: If type NOT specified and we have multiple distinct types, ask user to choose
-        # Exception: If count=1 (Preview Mode), just pick a default/latest instead of asking
-        if count > 1 and not type and len(available_types) > 1:
+        # Exception 1: If count=1 (Preview Mode), just pick a default/latest instead of asking
+        # Exception 2: For Junior Grades (1-4), automatically pick the best type (MCQ) instead of asking
+        is_junior = any(t.grade <= 4 for t in templates)
+        
+        if count > 1 and not type and len(available_types) > 1 and not is_junior:
             # Check if they are actually different types (ignore case)
             unique_types_normalized = set(t.upper() for t in available_types)
             if len(unique_types_normalized) > 1:
