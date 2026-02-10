@@ -173,7 +173,12 @@ def get_dashboard_stats(
     high_scorers_count = 0
     if student_ids:
         # Fetch all completed sessions for these students
-        sessions = db.query(AssessmentSession).filter(
+        # OPTIMIZED: Use selectinload to eagerly load questions (prevents N+1)
+        from sqlalchemy.orm import selectinload
+        
+        sessions = db.query(AssessmentSession).options(
+            selectinload(AssessmentSession.questions)
+        ).filter(
             AssessmentSession.student_id.in_(student_ids),
             AssessmentSession.status == "COMPLETED"
         ).all()
@@ -191,6 +196,7 @@ def get_dashboard_stats(
                 high_scorer_student_ids.add(session.student_id)
         
         high_scorers_count = len(high_scorer_student_ids)
+
 
     return {
         "success": True,
@@ -239,7 +245,13 @@ def get_reports(
         return []
 
     # 2. Fetch completed sessions for these students
-    reports = db.query(AssessmentSession).filter(
+    # OPTIMIZED: Use eager loading to prevent N+1 queries
+    from sqlalchemy.orm import joinedload, selectinload
+    
+    reports = db.query(AssessmentSession).options(
+        joinedload(AssessmentSession.student),
+        selectinload(AssessmentSession.questions)
+    ).filter(
         AssessmentSession.student_id.in_(student_ids),
         AssessmentSession.status == "COMPLETED"
     ).order_by(AssessmentSession.completed_at.desc()).all()
@@ -263,6 +275,7 @@ def get_reports(
         })
     
     return result
+
 
 @router.get("/reports/export")
 def export_reports(
@@ -445,46 +458,46 @@ def start_assessment(
     ).first()
     
     if active_session:
-        # Fetch questions with topic from template (V1)
-        # Note: V2 questions are also stored in AssessmentSessionQuestion. 
-        # But we need to join on the correct table to get the topic.
-        # Since template_id is not unique across tables (both auto-increment integer), we have a collision risk if we mix them 
-        # without tracking source. 
-        # Ideally AssessmentSessionQuestion should store 'is_v2' flag or 'source'. 
-        # CURRENT SCHEMA LIMITATION: AssessmentSessionQuestion has template_id (int). 
-        # If V1 id=1 and V2 id=1 exist, we can't tell them apart easily unless we assumed ranges or added a column.
-        # For this fix, let's assume we can try to look up in V2 first (since it's newer/larger), then V1? 
-        # OR: We can store the topic IN the question_type or options or just not join for now?
-        # Actually, we added 'topic' to the response schema. 
-        # Let's try to recover topic from the "GeneratedQuestion" or just fallback.
-        # For now, let's just return what we have in the DB.
+        # Fetch questions with topic from template (V1/V2)
+        # OPTIMIZED: Bulk fetch all templates to avoid N+1 query problem
         
         questions = db.query(AssessmentSessionQuestion).filter(
             AssessmentSessionQuestion.session_id == active_session.id
         ).all()
         
-        questions_response = []
-        for q in questions:
-            # Try to fetch topic dynamically if possible, or leave null
-            # Optimization: could fetch in bulk. 
-            # For header display, let's try to lookup V2 first (most likely)
-            
-            # Simple heuristic: try to find V2
+        # Collect all template IDs
+        template_ids = [q.template_id for q in questions]
+        
+        if template_ids:
+            # Bulk fetch V2 templates (likely most questions)
             from app.modules.questions.models import QuestionGeneration
-            v2 = db.query(QuestionGeneration).filter(QuestionGeneration.template_id == q.template_id).first()
-            if v2 and v2.skill_name:
-                q.topic = v2.skill_name
-            else:
-                 # Try V1
-                 v1 = db.query(QuestionTemplate).filter(QuestionTemplate.template_id == q.template_id).first()
-                 if v1:
-                     q.topic = v1.topic
+            v2_templates = {
+                t.template_id: t 
+                for t in db.query(QuestionGeneration).filter(
+                    QuestionGeneration.template_id.in_(template_ids)
+                ).all()
+            }
             
-            questions_response.append(q)
-
+            # Bulk fetch V1 templates (for any not in V2)
+            v1_templates = {
+                t.template_id: t
+                for t in db.query(QuestionTemplate).filter(
+                    QuestionTemplate.template_id.in_(template_ids)
+                ).all()
+            }
+            
+            # Map topics to questions (in-memory, no extra queries)
+            for q in questions:
+                if q.template_id in v2_templates:
+                    q.topic = v2_templates[q.template_id].skill_name
+                elif q.template_id in v1_templates:
+                    q.topic = v1_templates[q.template_id].topic
+                else:
+                    q.topic = "Unknown"  # Fallback
+        
         return {
             "session_id": active_session.id,
-            "questions": questions_response,
+            "questions": questions,
             "duration_minutes": 30
         }
     
@@ -685,6 +698,7 @@ def start_assessment(
     db.refresh(session)
     
     generated_questions = []
+    questions_to_insert = []  # For bulk insert
             
     for idx, template_data in enumerate(selected_items):
         try:
@@ -726,35 +740,55 @@ def start_assessment(
             
             options = json.dumps(result.get('options', [])) if 'options' in result else None
             
-            # Create Session Question
-            q = AssessmentSessionQuestion(
-                session_id=session.id,
-                template_id=template_data['id'], 
-                question_html=question_text,
-                question_type=q_type,
-                options=options,
-                correct_answer=answer_value,
-                student_answer=None,
-                is_correct=None
-            )
-            db.add(q)
+            # Prepare question data for bulk insert
+            question_data = {
+                'session_id': session.id,
+                'template_id': template_data['id'],
+                'question_html': question_text,
+                'question_type': q_type,
+                'options': options,
+                'correct_answer': answer_value,
+                'student_answer': None,
+                'is_correct': None
+            }
+            questions_to_insert.append(question_data)
             
-            # Attach topic for response (transient)
-            q.topic = template_data['topic']
-            
-            generated_questions.append(q)
+            # Create a mock object for the response (with topic attached)
+            # We'll need to retrieve these from DB after bulk insert
+            mock_q = type('obj', (object,), {
+                **question_data,
+                'topic': template_data['topic'],
+                'id': None  # Will be assigned after insert
+            })()
+            generated_questions.append(mock_q)
             
         except Exception as e:
             print(f"Failed to generate question from template {template_data['id']} ({template_data['source']}): {e}")
             continue
-            
+    
+    # OPTIMIZED: Bulk insert all questions at once instead of individual db.add()
+    if questions_to_insert:
+        db.bulk_insert_mappings(AssessmentSessionQuestion, questions_to_insert)
+    
     db.commit()
+    
+    # Fetch the actually inserted questions with their IDs and attach topics
+    actual_questions = db.query(AssessmentSessionQuestion).filter(
+        AssessmentSessionQuestion.session_id == session.id
+    ).all()
+    
+    # Map topics to the actual questions
+    template_id_to_topic = {gq.template_id: gq.topic for gq in generated_questions}
+    for q in actual_questions:
+        q.topic = template_id_to_topic.get(q.template_id, "Unknown")
+    
     
     return {
         "session_id": session.id,
-        "questions": generated_questions,
+        "questions": actual_questions,
         "duration_minutes": 30
     }
+
 
 @router.post("/submit-assessment")
 def submit_assessment(

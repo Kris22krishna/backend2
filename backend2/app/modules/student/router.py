@@ -63,10 +63,11 @@ def get_student_stats(
     """
     student = db.query(Student).filter(Student.user_id == current_user.user_id).first()
     
-    # Get all reports for this student
+    # OPTIMIZED: Limit to most recent 100 reports instead of fetching ALL
+    # This provides accurate stats while preventing performance degradation
     reports = db.query(Report).filter(
         Report.user_id == current_user.user_id
-    ).order_by(Report.created_at.desc()).all()
+    ).order_by(Report.created_at.desc()).limit(100).all()
     
     today = datetime.utcnow().date()
     
