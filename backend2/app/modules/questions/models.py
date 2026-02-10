@@ -129,6 +129,7 @@ class QuestionGeneration(Base):
     type = Column(Text, nullable=False)              # "MCQ", "User Input", "Image Based", "Code Based"
     format = Column(Integer, nullable=False)         # Format identifier
     difficulty = Column(Text, nullable=False)        # "Easy", "Medium", "Hard"
+    model = Column(Text, nullable=True)             # Layout model: "Default", "Fraction", "Matrix" etc.
     
     # Code Templates (JSX/JavaScript code)
     question_template = Column(Text, nullable=False)

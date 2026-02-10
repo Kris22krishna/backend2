@@ -1,0 +1,40 @@
+--- NEW SKILL IDs ---
+ID: 1868 | Grade: 8 | Topic: Exponents and Power | Skill: Powers with Negative Exponents
+ID: 1869 | Grade: 8 | Topic: Exponents and Power | Skill: Laws of Exponents
+ID: 1870 | Grade: 8 | Topic: Exponents and Power | Skill: Use of Exponents to Express Small Numbers in Standard Form
+ID: 1871 | Grade: 8 | Topic: Exponents and Power | Skill: Comparing very large and very small Numbers
+ID: 1872 | Grade: 9 | Topic: Linear Equation in Two Variables | Skill: Linear equation
+ID: 1873 | Grade: 9 | Topic: Linear Equation in Two Variables | Skill: Solution of a linear equation
+ID: 1874 | Grade: 10 | Topic: Pair of Linear Equations in Two Variables | Skill: Graphical Method of Solution of a Pair of Linear Equations
+ID: 1875 | Grade: 10 | Topic: Pair of Linear Equations in Two Variables | Skill: Algebraic Methods of Solving a Pair of Linear Equations
+ID: 1876 | Grade: 10 | Topic: Pair of Linear Equations in Two Variables | Skill: Substitution Method
+ID: 1877 | Grade: 10 | Topic: Pair of Linear Equations in Two Variables | Skill: Elimination Method
+ID: 1878 | Grade: 7 | Topic: Exponents and Powers | Skill: exponents
+ID: 1879 | Grade: 7 | Topic: Exponents and Powers | Skill: laws of exponents - multiplying powers with the same base
+ID: 1880 | Grade: 7 | Topic: Exponents and Powers | Skill: laws of exponents - dividing powers with the same base
+ID: 1881 | Grade: 7 | Topic: Exponents and Powers | Skill: laws of exponents - taking power of a power
+ID: 1882 | Grade: 7 | Topic: Exponents and Powers | Skill: laws of exponents - multiplying powers of the same exponents
+ID: 1883 | Grade: 7 | Topic: Exponents and Powers | Skill: laws of exponents - dividing powers of the same exponents
+ID: 1884 | Grade: 7 | Topic: Exponents and Powers | Skill: miscellaneous examples using the laws of exponents
+ID: 1885 | Grade: 7 | Topic: Exponents and Powers | Skill: decimal number system
+ID: 1886 | Grade: 7 | Topic: Exponents and Powers | Skill: expressing large numbers in the standard form
+ID: 1887 | Grade: 6 | Topic: FRACTION | Skill: Fractional units and equals shares
+ID: 1888 | Grade: 6 | Topic: FRACTION | Skill: Fractional units as parts of a whole
+ID: 1889 | Grade: 6 | Topic: FRACTION | Skill: Measuring using Fractional units
+ID: 1890 | Grade: 6 | Topic: FRACTION | Skill: Marking fraction length on the number line(image)
+ID: 1891 | Grade: 6 | Topic: FRACTION | Skill: mixed fractions
+ID: 1892 | Grade: 6 | Topic: FRACTION | Skill: Equivalent Fractions
+ID: 1893 | Grade: 6 | Topic: FRACTION | Skill: Comparing Fraction
+ID: 1894 | Grade: 6 | Topic: FRACTION | Skill: Addition and Subtraction of fraction
+ID: 1895 | Grade: 6 | Topic: FRACTION | Skill: Pinch of history
+ID: 1896 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: Maniratnam-The Cashier( Multiplication of 2 digit numbers with each other)
+ID: 1897 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: Shantaram a Special Cook( Multiplication of 3 digit numbers with each other)
+ID: 1898 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: Years and Years(Multiplication word problems)
+ID: 1899 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: Karunya the Landlord( Area and Perimeter)
+ID: 1900 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: Farmers in Vidarbha( Multiplication word problems)
+ID: 1901 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: Fun with multiplication( Follow a pattern)
+ID: 1902 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: How many times?(Dividing 3 digit using 2 digit- story based)
+ID: 1903 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: How much petrol?(Division word problems)
+ID: 1904 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: Children’s Day(Division word problems)
+ID: 1905 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: Make the best story problem
+ID: 1906 | Grade: 5 | Topic: Ways to Multiply and Divide | Skill: Cross Check for Harisharan(Multiple step division and multiplication word problems)

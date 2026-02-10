@@ -243,6 +243,7 @@ class QuestionGenerationCreate(BaseModel):
     type: str = Field(..., description="Question type: MCQ, User Input, Image Based, Code Based")
     format: int = Field(default=1, description="Format identifier")
     difficulty: str = Field(..., description="Easy, Medium, Hard")
+    model: Optional[str] = Field(default="Default", description="Layout model name")
     question_template: str = Field(..., min_length=1, description="JSX code for question")
     answer_template: str = Field(..., min_length=1, description="JSX code for answer")
     solution_template: str = Field(..., min_length=1, description="JSX code for solution")
@@ -257,6 +258,7 @@ class QuestionGenerationUpdate(BaseModel):
     type: Optional[str] = None
     format: Optional[int] = None
     difficulty: Optional[str] = None
+    model: Optional[str] = None
     question_template: Optional[str] = None
     answer_template: Optional[str] = None
     solution_template: Optional[str] = None
@@ -272,6 +274,7 @@ class QuestionGenerationResponse(BaseModel):
     type: str
     format: int
     difficulty: str
+    model: Optional[str] = "Default"
     question_template: str
     answer_template: str
     solution_template: str
