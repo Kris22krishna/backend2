@@ -4,10 +4,17 @@
 import sys
 import os
 
-# Add backend2 directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend2'))
+# Get the directory containing this file (api/)
+current_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Import the FastAPI app
+# Go up one level to repo root, then into backend2 directory
+repo_root = os.path.dirname(current_dir)
+backend_path = os.path.join(repo_root, 'backend2')
+
+# Add backend2 to Python path
+sys.path.insert(0, backend_path)
+
+# Now import the FastAPI app from app.main
 from app.main import app
 
 # Export the app for Vercel
