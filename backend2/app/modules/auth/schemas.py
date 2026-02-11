@@ -96,3 +96,7 @@ class V2UserResponse(BaseModel):
 
 class EmailCheck(BaseModel):
     email: EmailStr
+
+class PredictUsernameRequest(BaseModel):
+    name: str
+    role: str

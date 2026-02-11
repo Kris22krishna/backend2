@@ -7,7 +7,7 @@ from app.modules.auth.schemas import (
     UserRegister, UserLogin, UserResponse, AdminLogin, 
     UploaderCreate, UploaderLogin, UploaderResponse, 
     GoogleLogin, AssessmentUploaderCreate, AssessmentUploaderLogin, AssessmentUploaderResponse,
-    V2UserRegister, V2UserLogin, V2UserResponse, EmailCheck
+    V2UserRegister, V2UserLogin, V2UserResponse, EmailCheck, PredictUsernameRequest
 )
 from app.modules.student.models import Student
 from app.modules.teacher.models import Teacher
@@ -16,6 +16,41 @@ from app.core.security import get_password_hash, verify_password, create_access_
 from datetime import datetime
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+@router.post("/predict-username")
+def predict_username(data: PredictUsernameRequest, db: Session = Depends(get_db)):
+    """
+    Predict next available username.
+    """
+    prefix_map = {
+        "student": "s",
+        "parent": "p",
+        "mentor": "m",
+        "guest": "g"
+    }
+
+    # Use 't' for mentor as per user preference
+    role_prefix = prefix_map.get(data.role.lower(), data.role.lower()[0]) 
+    if data.role.lower() == 'mentor': role_prefix = 't' 
+
+    clean_name = "".join(c for c in data.name if c.isalnum()).lower()
+    name_part = clean_name[:4] if len(clean_name) >= 4 else clean_name
+    
+    base_username = f"{role_prefix}100-{name_part}"
+    
+    generated_username = base_username
+    
+    # Check if base exists
+    if db.query(V2AuthCredential).filter(V2AuthCredential.username == base_username).first():
+        counter = 2
+        while True:
+            candidate = f"{base_username}{counter}"
+            if not db.query(V2AuthCredential).filter(V2AuthCredential.username == candidate).first():
+                generated_username = candidate
+                break
+            counter += 1
+            
+    return {"username": generated_username}
 
 @router.post("/register", response_model=V2UserResponse)
 def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
@@ -34,15 +69,7 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
     prefix_map = {
         "student": "s",
         "parent": "p",
-        "mentor": "m", # User requested 't' for teacher, but role is mentor here. Let's use 'm' or map? User said: "for teacher, t100".
-                       # If frontend sends 'mentor', I'll use 'm'. If user insists on 't', I might need to adjust.
-                       # Given the prompt explicitly listed "teacher -> t", "mentor" -> ?
-                       # But my schema has 'mentor'. I'll stick to 'm' for mentor to be consistent with role name in DB.
-                       # If I really want 't', I would have to map role='mentor' -> 't' prefix.
-                       # Let's use 't' for 'mentor' if that's what user implied by "teacher".
-                       # Actually, the user prompt said: "for teacher, t100...".
-                       # And typically "mentor" = "teacher" in this app context. 
-                       # So I will use 't' for 'mentor'.
+        "mentor": "m",
         "guest": "g"
     }
     
@@ -56,15 +83,17 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
     
     base_username = f"{role_prefix}100-{name_part}"
     
-    # Uniqueness Check & Suffix
+    # Uniqueness Check & Suffix (Skip 1, start at 2)
     generated_username = base_username
-    counter = 1
     
-    while db.query(V2AuthCredential).filter(V2AuthCredential.username == generated_username).first():
-        generated_username = f"{base_username}{counter}"
-        counter += 1
-        
-    # --- End Username Generation ---
+    if db.query(V2AuthCredential).filter(V2AuthCredential.username == base_username).first():
+        counter = 2
+        while True:
+            candidate = f"{base_username}{counter}"
+            if not db.query(V2AuthCredential).filter(V2AuthCredential.username == candidate).first():
+                generated_username = candidate
+                break
+            counter += 1
 
     # 1. Create Base User
     new_user = V2User(
