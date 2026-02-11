@@ -72,7 +72,7 @@ class AssessmentUploaderResponse(BaseModel):
 class V2UserRegister(BaseModel):
     name: str 
     role: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     password: str
     phone_number: Optional[str] = None 
     class_name: Optional[str] = None 
@@ -91,7 +91,7 @@ class V2UserResponse(BaseModel):
     user_id: int
     name: str
     role: str
-    email: str
+    email: Optional[str] = None
     token: str
 
 class EmailCheck(BaseModel):

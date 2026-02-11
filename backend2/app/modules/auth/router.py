@@ -59,11 +59,12 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
     """
     
     # Check if email exists in V2Auth
-    if db.query(V2AuthCredential).filter(V2AuthCredential.email_id == user_in.email).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
+    if user_in.email:
+        if db.query(V2AuthCredential).filter(V2AuthCredential.email_id == user_in.email).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
 
     # --- Username Generation Logic ---
     prefix_map = {
