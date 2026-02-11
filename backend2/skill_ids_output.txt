@@ -1,0 +1,21 @@
+ID: 1907 | Grade: 5 | Topic: Parts and wholes | Skill: Our flag
+ID: 1908 | Grade: 5 | Topic: Parts and wholes | Skill: Magic top
+ID: 1909 | Grade: 5 | Topic: Parts and wholes | Skill: Greedy gatekeepers
+ID: 1910 | Grade: 5 | Topic: Parts and wholes | Skill: Patterns in parts
+ID: 1911 | Grade: 5 | Topic: Parts and wholes | Skill: Ramu's Vegetable field
+ID: 1912 | Grade: 5 | Topic: Parts and wholes | Skill: Cutting the Halwa
+ID: 1913 | Grade: 5 | Topic: Parts and wholes | Skill: Rupees and Paise
+ID: 1914 | Grade: 5 | Topic: Parts and wholes | Skill: An old woman's will
+ID: 1915 | Grade: 5 | Topic: Parts and wholes | Skill: School Magazine
+ID: 1916 | Grade: 5 | Topic: Parts and wholes | Skill: Sleeping Beauty
+ID: 1917 | Grade: 5 | Topic: Parts and wholes | Skill: Keerti's Shopping List
+ID: 1918 | Grade: 4 | Topic: The Cleanest Village | Skill: Daisy and Lou go Shopping(2 digit with 1 digit addition and subtraction- word problems)
+ID: 1919 | Grade: 4 | Topic: The Cleanest Village | Skill: A strange puzzle(2 digit with 1 digit addition and subtraction- word problems)
+ID: 1920 | Grade: 4 | Topic: The Cleanest Village | Skill: Let us Play( Triangle addition- word problems)
+ID: 1921 | Grade: 4 | Topic: The Cleanest Village | Skill: Add up(2 digit to 2 digit addition- word problems)
+ID: 1922 | Grade: 4 | Topic: The Cleanest Village | Skill: Let us do pt-1( 3 digit to 2 digit addition- word problems)
+ID: 1923 | Grade: 4 | Topic: The Cleanest Village | Skill: Subtract it(2 digit to 2 digit subtraction- word problems)
+ID: 1924 | Grade: 4 | Topic: The Cleanest Village | Skill: Let us solve( 3 digit to 3 digit addition and subtraction- word problems)
+ID: 1925 | Grade: 4 | Topic: The Cleanest Village | Skill: Number pair hunt( Box addition)
+ID: 1926 | Grade: 4 | Topic: The Cleanest Village | Skill: Missing Digits(Missing digits)
+ID: 1927 | Grade: 4 | Topic: The Cleanest Village | Skill: Let us do pt-2(3 digit to 3 digit addition and subtraction)
