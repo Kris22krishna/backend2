@@ -111,3 +111,48 @@ class Credential(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     user = relationship("User", back_populates="credentials")
+
+class V2User(Base):
+    __tablename__ = "v2_users"
+    user_id = Column(Integer, primary_key=True, autoincrement=True) # BIGSERIAL maps to Integer/BigInteger in SQLA
+    name = Column(String, nullable=False)
+    role = Column(String, nullable=False) 
+    created_at = Column(DateTime, server_default=func.now())
+
+class V2Student(Base):
+    __tablename__ = "v2_students"
+    user_id = Column(Integer, ForeignKey("v2_users.user_id", ondelete="CASCADE"), primary_key=True)
+    class_name = Column("class", String, nullable=False)
+
+class V2Parent(Base):
+    __tablename__ = "v2_parents"
+    user_id = Column(Integer, ForeignKey("v2_users.user_id", ondelete="CASCADE"), primary_key=True)
+    phone_number = Column(String, nullable=False)
+
+class V2Mentor(Base):
+    __tablename__ = "v2_mentors"
+    user_id = Column(Integer, ForeignKey("v2_users.user_id", ondelete="CASCADE"), primary_key=True)
+    phone_number = Column(String, nullable=False)
+
+class V2StudentParent(Base):
+    __tablename__ = "v2_student_parent"
+    parent_id = Column(Integer, ForeignKey("v2_parents.user_id", ondelete="CASCADE"), primary_key=True)
+    student_id = Column(Integer, ForeignKey("v2_students.user_id", ondelete="CASCADE"), primary_key=True)
+
+class V2Mentorship(Base):
+    __tablename__ = "v2_mentorship"
+    mentor_id = Column(Integer, ForeignKey("v2_mentors.user_id", ondelete="CASCADE"), primary_key=True)
+    student_id = Column(Integer, ForeignKey("v2_students.user_id", ondelete="CASCADE"), primary_key=True)
+
+class V2AuthCredential(Base):
+    __tablename__ = "v2_auth_credentials"
+    user_id = Column(Integer, ForeignKey("v2_users.user_id", ondelete="CASCADE"), primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    email_id = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+
+class V2Guest(Base):
+    __tablename__ = "v2_guests"
+    user_id = Column(Integer, ForeignKey("v2_users.user_id", ondelete="CASCADE"), primary_key=True)
+    phone_number = Column(String, nullable=False)
+

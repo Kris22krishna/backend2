@@ -68,3 +68,31 @@ class AssessmentUploaderResponse(BaseModel):
     email: str
     access_code: str
 
+
+class V2UserRegister(BaseModel):
+    name: str 
+    role: str
+    email: EmailStr
+    password: str
+    phone_number: Optional[str] = None 
+    class_name: Optional[str] = None 
+
+    @validator('role')
+    def validate_role(cls, v):
+        if v.lower() not in ["student", "parent", "mentor", "guest"]:
+            raise ValueError("Role must be 'student', 'parent', 'mentor', or 'guest'")
+        return v.lower()
+
+class V2UserLogin(BaseModel):
+    identifier: str # Email or Username
+    password: str
+
+class V2UserResponse(BaseModel):
+    user_id: int
+    name: str
+    role: str
+    email: str
+    token: str
+
+class EmailCheck(BaseModel):
+    email: EmailStr
