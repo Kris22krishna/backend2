@@ -183,7 +183,7 @@ def register(user_in: V2UserRegister, response: Response, db: Session = Depends(
             value=token,
             httponly=True,
             secure=True,     # Strict HTTPS
-            samesite="lax",  # Prevent CSRF
+            samesite="none",  # Allow cross-site for production
             max_age=3600     # 1 Hour
         )
 
@@ -248,7 +248,7 @@ def logout(response: Response):
     """
     Logout by clearing the HttpOnly cookie.
     """
-    response.delete_cookie("access_token")
+    response.delete_cookie("access_token", samesite="none", secure=True)
     return {"message": "Logged out successfully"}
 
 @router.post("/check-email")
@@ -296,7 +296,7 @@ def login(
         value=token,
         httponly=True,
         secure=True, 
-        samesite="lax",
+        samesite="none",
         max_age=3600
     )
     
@@ -409,7 +409,7 @@ def google_login(login_in: GoogleLogin, response: Response, db: Session = Depend
         value=token,
         httponly=True,
         secure=True, 
-        samesite="lax",
+        samesite="none",
         max_age=3600
     )
 
@@ -462,7 +462,7 @@ def admin_login(login_in: AdminLogin, response: Response, db: Session = Depends(
         value=token,
         httponly=True,
         secure=True, 
-        samesite="lax",
+        samesite="none",
         max_age=3600
     )
 
@@ -594,7 +594,7 @@ def uploader_login(login_in: UploaderLogin, response: Response, db: Session = De
         value=token,
         httponly=True,
         secure=True, 
-        samesite="lax",
+        samesite="none",
         max_age=3600
     )
 
@@ -774,7 +774,7 @@ def assessment_uploader_login(login_in: AssessmentUploaderLogin, response: Respo
         value=token,
         httponly=True,
         secure=True, 
-        samesite="lax",
+        samesite="none",
         max_age=3600
     )
     
