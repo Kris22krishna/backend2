@@ -64,27 +64,30 @@ def get_children(
     db: Session = Depends(get_db)
 ):
     """
-    List linked children.
+    List linked children (V2).
     """
-    parent_details = db.query(Parent).filter(Parent.user_id == current_user.user_id).first()
-    if not parent_details:
+    from app.modules.auth.models import V2Parent, V2StudentParent, V2Student, V2User
+    
+    # Check if V2 parent exists
+    v2_parent = db.query(V2Parent).filter(V2Parent.user_id == current_user.user_id).first()
+    if not v2_parent:
         return []
         
-    links = db.query(ParentStudent).filter(ParentStudent.parent_id == parent_details.parent_id).all()
+    # Get all linked students
+    links = db.query(V2StudentParent).filter(V2StudentParent.parent_id == v2_parent.user_id).all()
     
     result = []
     for link in links:
-        student = db.query(Student).filter(Student.student_id == link.student_id).first()
-        if student:
-            user = db.query(User).filter(User.user_id == student.user_id).first()
-            school = db.query(School).filter(School.school_id == student.school_id).first()
-            if user:
+        v2_student = db.query(V2Student).filter(V2Student.user_id == link.student_id).first()
+        if v2_student:
+            v2_user = db.query(V2User).filter(V2User.user_id == v2_student.user_id).first()
+            if v2_user:
                 result.append({
-                    "student_id": student.student_id,
-                    "name": f"{user.first_name} {user.last_name or ''}".strip(),
-                    "grade": student.grade,
-                    "school_name": school.school_name if school else None,
-                    "role_number": student.roll_number
+                    "student_id": v2_student.user_id,
+                    "name": v2_user.name,
+                    "grade": v2_student.class_name,  # 'class' field in v2_students
+                    "school_name": None,  # V2 doesn't have school reference yet
+                    "role_number": None  # V2 doesn't have roll_number
                 })
     return result
 
@@ -137,80 +140,89 @@ def link_child(
     db: Session = Depends(get_db)
 ):
     """
-    Link a student to the current parent account using student's username.
+    Link a student to the current parent account using student's username (V2).
     """
-    # 1. Get Parent Profile
-    parent = db.query(Parent).filter(Parent.user_id == current_user.user_id).first()
-    if not parent:
-        # Create parent profile if not exists (lazy creation)
-        parent = Parent(
-            user_id=current_user.user_id,
-            parent_id=uuid.uuid4(),
-            tenant_id=current_user.tenant_id, # Assuming tenant context
-            school_id=current_user.school_id, # Include school_id
-            occupation="Parent"
-        )
-        db.add(parent)
-        db.commit()
-        db.refresh(parent)
-
-    # 2. Find Student User by Username
-    # 2. Find Student User by Identifier (Credential)
-    # Check Credentials table since User doesn't have username field
-    from app.modules.auth.models import Credential
-    
-    credential = db.query(Credential).filter(Credential.identifier == request.student_username).first()
-    
-    if not credential:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Student not found with this username/email"
-        )
+    try:
+        from app.modules.auth.models import V2AuthCredential, V2User, V2Student, V2Parent, V2StudentParent
         
-    student_user = db.query(User).filter(User.user_id == credential.user_id).first()
-    if not student_user:
-         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User profile not found"
-        )
-    
-    # 3. Get Student Profile
-    student = db.query(Student).filter(Student.user_id == student_user.user_id).first()
-    if not student:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is not registered as a student"
-        )
+        # 1. Get or Create V2 Parent Profile
+        v2_parent = db.query(V2Parent).filter(V2Parent.user_id == current_user.user_id).first()
+        if not v2_parent:
+            # Check if v2_user exists
+            v2_user = db.query(V2User).filter(V2User.user_id == current_user.user_id).first()
+            if not v2_user:
+                # Create V2 user entry for parent
+                v2_user = V2User(
+                    user_id=current_user.user_id,
+                    name=f"{current_user.first_name} {current_user.last_name}",
+                    role='parent'
+                )
+                db.add(v2_user)
+                db.flush()
+            
+            # Create V2 parent profile
+            v2_parent = V2Parent(
+                user_id=current_user.user_id,
+                phone_number=getattr(current_user, 'phone', 'N/A')
+            )
+            db.add(v2_parent)
+            db.commit()
+            db.refresh(v2_parent)
 
-    # 4. Check if already linked
-    existing_link = db.query(ParentStudent).filter(
-        ParentStudent.parent_id == parent.parent_id,
-        ParentStudent.student_id == student.student_id
-    ).first()
+        # 2. Find Student by Username using V2 Auth Credentials
+        v2_credential = db.query(V2AuthCredential).filter(
+            V2AuthCredential.username == request.student_username
+        ).first()
+        
+        if not v2_credential:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Student not found with this username"
+            )
+        
+        # 3. Get V2 Student Profile
+        v2_student = db.query(V2Student).filter(V2Student.user_id == v2_credential.user_id).first()
+        if not v2_student:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is not registered as a student"
+            )
+        
+        # Get student name from V2User
+        v2_student_user = db.query(V2User).filter(V2User.user_id == v2_student.user_id).first()
+        student_name = v2_student_user.name if v2_student_user else "Student"
 
-    if existing_link:
+        # 4. Check if already linked
+        existing_link = db.query(V2StudentParent).filter(
+            V2StudentParent.parent_id == v2_parent.user_id,
+            V2StudentParent.student_id == v2_student.user_id
+        ).first()
+
+        if existing_link:
+            return {
+                "message": "Student already linked",
+                "student_name": student_name,
+                "student_id": v2_student.user_id
+            }
+
+        # 5. Create V2 Link
+        new_link = V2StudentParent(
+            parent_id=v2_parent.user_id,
+            student_id=v2_student.user_id
+        )
+        db.add(new_link)
+        db.commit()
+
         return {
-            "message": "Student already linked",
-            "student_name": f"{student_user.first_name} {student_user.last_name}",
-            "student_id": student.student_id
+            "message": "Successfully linked student",
+            "student_name": student_name,
+            "student_id": v2_student.user_id
         }
-
-    # 5. Create Link
-    new_link = ParentStudent(
-        parent_student_id=uuid.uuid4(),
-        parent_id=parent.parent_id,
-        student_id=student.student_id,
-        relationship_type="Parent",
-        can_view_reports=True,
-        can_receive_notifications=True
-    )
-    db.add(new_link)
-    db.commit()
-
-    return {
-        "message": "Successfully linked student",
-        "student_name": f"{student_user.first_name} {student_user.last_name}",
-        "student_id": student.student_id
-    }
-
-
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+        error_msg = traceback.format_exc()
+        print(f"Link Child Error:\n{error_msg}")
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=500, content={"detail": str(e), "traceback": error_msg})

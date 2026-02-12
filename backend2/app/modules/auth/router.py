@@ -52,154 +52,194 @@ def predict_username(data: PredictUsernameRequest, db: Session = Depends(get_db)
             
     return {"username": generated_username}
 
-@router.post("/register", response_model=V2UserResponse)
+@router.post("/register")
 def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
     """
     Register a new user (V2).
     """
     
-    # Check if email exists in V2Auth
-    if user_in.email:
-        if db.query(V2AuthCredential).filter(V2AuthCredential.email_id == user_in.email).first():
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email already registered"
-            )
-
-    # --- Username Generation Logic ---
-    prefix_map = {
-        "student": "s",
-        "parent": "p",
-        "mentor": "m",
-        "guest": "g"
-    }
-    
-    # Use 't' for mentor as per user preference for "teacher" prefix style
-    role_prefix = prefix_map.get(user_in.role, user_in.role[0]) 
-    if user_in.role == 'mentor': role_prefix = 't' 
-
-    # Clean name: remove spaces, lowercase, take first 4
-    clean_name = "".join(c for c in user_in.name if c.isalnum()).lower()
-    name_part = clean_name[:4] if len(clean_name) >= 4 else clean_name
-    
-    base_username = f"{role_prefix}100-{name_part}"
-    
-    # Uniqueness Check & Suffix (Skip 1, start at 2)
-    generated_username = base_username
-    
-    if db.query(V2AuthCredential).filter(V2AuthCredential.username == base_username).first():
-        counter = 2
-        while True:
-            candidate = f"{base_username}{counter}"
-            if not db.query(V2AuthCredential).filter(V2AuthCredential.username == candidate).first():
-                generated_username = candidate
-                break
-            counter += 1
-
-    # 1. Create Base User
-    new_user = V2User(
-        name=user_in.name,
-        role=user_in.role
-    )
-    db.add(new_user)
-    db.flush() # To get user_id
-
-    # 2. Create Role-Specific Profile
-    if user_in.role == 'student':
-        # Grade is optional in DB? V2Student has 'class NOT NULL'.
-        # User said "increase grade option...". So it's required for student.
-        if not user_in.class_name:
-             # Fallback or error? User said "They can input... grade".
-             # If missing? Let's default to "Grade 5" or raise error.
-             # RegistrationForm sends it.
-             user_in.class_name = "Grade 5" 
-        
-        student = V2Student(
-            user_id=new_user.user_id, 
-            class_name=user_in.class_name
-        )
-        db.add(student)
-        
-    elif user_in.role == 'parent':
-        if not user_in.phone_number:
-             raise HTTPException(status_code=400, detail="Phone number is required for parents")
-        parent = V2Parent(
-            user_id=new_user.user_id, 
-            phone_number=user_in.phone_number
-        )
-        db.add(parent)
-        
-    elif user_in.role == 'mentor':
-        if not user_in.phone_number:
-             raise HTTPException(status_code=400, detail="Phone number is required for mentors")
-        mentor = V2Mentor(
-            user_id=new_user.user_id, 
-            phone_number=user_in.phone_number
-        )
-        db.add(mentor)
-        
-    elif user_in.role == 'guest':
-        if not user_in.phone_number:
-             raise HTTPException(status_code=400, detail="Phone number is required for guests")
-        guest = V2Guest(
-            user_id=new_user.user_id,
-            phone_number=user_in.phone_number
-        )
-        db.add(guest)
-        
-    # Guest? Schema doesn't have V2Guest table. 
-    # If guest is just a user with role='guest', we are fine. 
-    # But wait, user said "for guest... phone number mandatory".
-    # Where do we store phone number for guest if no V2Guest table?
-    # The base v2_users table only has (id, name, role).
-    # The V2 schema I wrote:
-    # v2_users, v2_students, v2_parents, v2_mentors.
-    # No v2_guests.
-    # And v2_users doesn't have phone_number.
-    # Check if I missed something in user request. 
-    # "phone number (optional for students but mandatory for the parents, teachers and guests)."
-    # If I don't have a table for guest phone number, I can't store it.
-    # Maybe I should add v2_guests table? Or add phone_number to v2_users (nullable)?
-    # User provided schema ref: @[.agent/V2_SCHEMA_REFERENCE.sql].
-    # That schema did NOT have v2_guests or phone in v2_users.
-    # I should strictly follow the schema or ask?
-    # User said "Note this down... I do not want this to be commited." then "Rechange the apis to point to the new tables."
-    # Then "A few changes... phone number mandatory for ... guests".
-    # This implies I need to store it.
-    # I will modify `V2_SCHEMA_REFERENCE.sql` (conceptually) or just add `V2Guest` model?
-    # I'll add `V2Guest` model to `models.py` dynamically or updated it.
-    # Whatever, I'll assume I can add it.
-    
-    # 3. Create Auth Credentials
-    hashed_pw = get_password_hash(user_in.password)
-    cred = V2AuthCredential(
-        user_id=new_user.user_id,
-        username=generated_username,
-        email_id=user_in.email,
-        password_hash=hashed_pw
-    )
-    db.add(cred)
-    
     try:
+        # Check if email exists in V2Auth
+        if user_in.email:
+            if db.query(V2AuthCredential).filter(V2AuthCredential.email_id == user_in.email).first():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already registered"
+                )
+
+        # --- Username Generation Logic ---
+        prefix_map = {
+            "student": "s",
+            "parent": "p",
+            "mentor": "m",
+            "guest": "g"
+        }
+        
+        # Use 't' for mentor as per user preference for "teacher" prefix style
+        role_prefix = prefix_map.get(user_in.role, user_in.role[0]) 
+        if user_in.role == 'mentor': role_prefix = 't' 
+
+        # Clean name: remove spaces, lowercase, take first 4
+        clean_name = "".join(c for c in user_in.name if c.isalnum()).lower()
+        name_part = clean_name[:4] if len(clean_name) >= 4 else clean_name
+        
+        base_username = f"{role_prefix}100-{name_part}"
+        
+        # Uniqueness Check & Suffix (Skip 1, start at 2)
+        generated_username = base_username
+        
+        if db.query(V2AuthCredential).filter(V2AuthCredential.username == base_username).first():
+            counter = 2
+            while True:
+                candidate = f"{base_username}{counter}"
+                if not db.query(V2AuthCredential).filter(V2AuthCredential.username == candidate).first():
+                    generated_username = candidate
+                    break
+                counter += 1
+
+        # 1. Create Base User
+        new_user = V2User(
+            name=user_in.name,
+            role=user_in.role
+        )
+        db.add(new_user)
+        db.flush() # To get user_id
+
+        # 2. Create Role-Specific Profile
+        if user_in.role == 'student':
+            # Grade is optional in DB? V2Student has 'class NOT NULL'.
+            # User said "increase grade option...". So it's required for student.
+            if not user_in.class_name:
+                 # Fallback or error? User said "They can input... grade".
+                 # If missing? Let's default to "Grade 5" or raise error.
+                 # RegistrationForm sends it.
+                 user_in.class_name = "Grade 5" 
+            
+            student = V2Student(
+                user_id=new_user.user_id, 
+                class_name=user_in.class_name
+            )
+            db.add(student)
+            
+        elif user_in.role == 'parent':
+            if not user_in.phone_number:
+                 raise HTTPException(status_code=400, detail="Phone number is required for parents")
+            parent = V2Parent(
+                user_id=new_user.user_id, 
+                phone_number=user_in.phone_number
+            )
+            db.add(parent)
+            
+        elif user_in.role == 'mentor':
+            if not user_in.phone_number:
+                 raise HTTPException(status_code=400, detail="Phone number is required for mentors")
+            mentor = V2Mentor(
+                user_id=new_user.user_id, 
+                phone_number=user_in.phone_number
+            )
+            db.add(mentor)
+            
+        elif user_in.role == 'guest':
+            if not user_in.phone_number:
+                 raise HTTPException(status_code=400, detail="Phone number is required for guests")
+            guest = V2Guest(
+                user_id=new_user.user_id,
+                phone_number=user_in.phone_number
+            )
+            db.add(guest)
+            
+        # Guest? Schema doesn't have V2Guest table. 
+        # If guest is just a user with role='guest', we are fine. 
+        # But wait, user said "for guest... phone number mandatory".
+        # Where do we store phone number for guest if no V2Guest table?
+        # The base v2_users table only has (id, name, role).
+        # The V2 schema I wrote:
+        # v2_users, v2_students, v2_parents, v2_mentors.
+        # No v2_guests.
+        # And v2_users doesn't have phone_number.
+        # Check if I missed something in user request. 
+        # "phone number (optional for students but mandatory for the parents, teachers and guests)."
+        # If I don't have a table for guest phone number, I can't store it.
+        # Maybe I should add v2_guests table? Or add phone_number to v2_users (nullable)?
+        # User provided schema ref: @[.agent/V2_SCHEMA_REFERENCE.sql].
+        # That schema did NOT have v2_guests or phone in v2_users.
+        # I should strictly follow the schema or ask?
+        # User said "Note this down... I do not want this to be commited." then "Rechange the apis to point to the new tables."
+        # Then "A few changes... phone number mandatory for ... guests".
+        # This implies I need to store it.
+        # I will modify `V2_SCHEMA_REFERENCE.sql` (conceptually) or just add `V2Guest` model?
+        # Whatever, I'll assume I can add it.
+        
+        # 3. Create Auth Credentials
+        hashed_pw = get_password_hash(user_in.password)
+        cred = V2AuthCredential(
+            user_id=new_user.user_id,
+            username=generated_username,
+            email_id=user_in.email,
+            password_hash=hashed_pw
+        )
+        db.add(cred)
+        
         db.commit()
         db.refresh(new_user)
+        
+        # Auto-link to parent if parent_user_id is provided and role is student
+        if user_in.role == 'student' and user_in.parent_user_id:
+            try:
+                # Verify parent exists
+                v2_parent = db.query(V2Parent).filter(V2Parent.user_id == user_in.parent_user_id).first()
+                if v2_parent:
+                    # Create parent-student link
+                    new_link = V2StudentParent(
+                        parent_id=v2_parent.user_id,
+                        student_id=new_user.user_id
+                    )
+                    db.add(new_link)
+                    db.commit()
+            except Exception as link_error:
+                # Log but don't fail registration
+                print(f"Failed to auto-link to parent: {str(link_error)}")
+
+        # Generate Token
+        token = create_access_token(
+            user_id=str(new_user.user_id), 
+            tenant_id="default"
+        )
+        
+        return {
+            "user_id": new_user.user_id,
+            "name": new_user.name,
+            "role": new_user.role,
+            "email": user_in.email,
+            "username": generated_username,
+            "class_name": getattr(user_in, 'class_name', None),
+            "phone_number": getattr(user_in, 'phone_number', None),
+            "access_token": token,
+            "token_type": "bearer"
+        }
+
+    except HTTPException as he:
+        # Re-raise HTTP exceptions directly
+        raise he
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
-
-    # Generate Token
-    token = create_access_token(
-        user_id=str(new_user.user_id), 
-        tenant_id="default"
-    )
-    
-    return {
-        "user_id": new_user.user_id,
-        "name": new_user.name,
-        "role": new_user.role,
-        "email": user_in.email,
-        "token": token
-    }
+        import traceback
+        error_msg = traceback.format_exc()
+        try:
+            with open("error_log.txt", "a") as f:
+                f.write(f"\n--- ERROR at {datetime.now()} ---\n{error_msg}\n")
+        except:
+            pass
+            
+        print(f"Server Error Traceback:\n{error_msg}")
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=500, 
+            content={
+                "detail": f"Registration failed: {str(e)}",
+                "traceback": error_msg
+            }
+        )
 
 @router.post("/check-email")
 def check_email(data: EmailCheck, db: Session = Depends(get_db)):

@@ -75,7 +75,8 @@ class V2UserRegister(BaseModel):
     email: Optional[EmailStr] = None
     password: str
     phone_number: Optional[str] = None 
-    class_name: Optional[str] = None 
+    class_name: Optional[str] = None
+    parent_user_id: Optional[int] = None  # For auto-linking student to parent 
 
     @validator('role')
     def validate_role(cls, v):

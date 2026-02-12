@@ -867,6 +867,11 @@ def get_practice_questions_by_skill(
             count=count
         )
         
+        # Add template_id to each question sample
+        if 'preview_samples' in preview_result:
+            for sample in preview_result['preview_samples']:
+                sample['template_id'] = selected_template.template_id
+        
         # Enrich result with template metadata for frontend
         preview_result['template_metadata'] = {
             'template_id': selected_template.template_id,
