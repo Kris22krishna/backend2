@@ -3,6 +3,7 @@ from sqlalchemy import desc
 from app.modules.practice.models import PracticeSession, QuestionAttempt, UserSkillProgress
 from app.modules.practice.schemas import QuestionAttemptCreate, SessionCreate
 from datetime import datetime
+from app.modules.skills.models import Skill
 
 class PracticeService:
     
@@ -98,15 +99,36 @@ class PracticeService:
 
     @staticmethod
     def get_all_progress(db: Session, user_id: int):
-        return db.query(UserSkillProgress).filter(
+        results = db.query(UserSkillProgress, Skill.skill_name).outerjoin(
+            Skill, UserSkillProgress.skill_id == Skill.skill_id
+        ).filter(
             UserSkillProgress.user_id == user_id
         ).all()
+        
+        progress_list = []
+        for progress, skill_name in results:
+            progress.skill_name = skill_name
+            progress_list.append(progress)
+            
+        return progress_list
+
+
 
     @staticmethod
     def get_recent_sessions(db: Session, user_id: int, limit: int = 10):
-        return db.query(PracticeSession).filter(
+        # Join with Skill to get skill_name
+        results = db.query(PracticeSession, Skill.skill_name).outerjoin(
+            Skill, PracticeSession.skill_id == Skill.skill_id
+        ).filter(
             PracticeSession.user_id == user_id
         ).order_by(desc(PracticeSession.started_at)).limit(limit).all()
+        
+        sessions = []
+        for sess, s_name in results:
+            sess.skill_name = s_name  # Attach skill_name to session object for Pydantic
+            sessions.append(sess)
+            
+        return sessions
 
     @staticmethod
     def finish_session(db: Session, session_id: int):

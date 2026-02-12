@@ -40,6 +40,7 @@ class ProgressBase(BaseModel):
     updated_at: datetime
 
 class ProgressResponse(ProgressBase):
+    skill_name: Optional[str] = None
     class Config:
         from_attributes = True
 
@@ -49,6 +50,7 @@ class SessionCreate(BaseModel):
 
 class SessionResponse(SessionCreate):
     session_id: int
+    skill_name: Optional[str] = None
     started_at: datetime
     ended_at: Optional[datetime] = None
     total_time_seconds: int

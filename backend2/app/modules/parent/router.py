@@ -5,8 +5,11 @@ from typing import List
 
 from app.db.session import get_db
 from app.core.security import get_current_user
-from app.modules.auth.models import User, School
 from app.modules.student.models import Student, Report
+from app.modules.auth.models import (
+    User, School, 
+    V2User, V2Parent, V2Student, V2StudentParent, V2AuthCredential
+)
 from app.modules.parent.models import Parent, ParentStudent
 from app.modules.parent.schemas import (
     ParentProfile, 
@@ -44,8 +47,29 @@ def get_parent_profile(
     db: Session = Depends(get_db)
 ):
     """
-    Get current parent profile.
+    Get current parent profile (Support for V2).
     """
+    # Check if V2 User (integer ID)
+    if isinstance(current_user.user_id, int):
+        v2_parent = db.query(V2Parent).filter(V2Parent.user_id == current_user.user_id).first()
+        v2_creds = db.query(V2AuthCredential).filter(V2AuthCredential.user_id == current_user.user_id).first()
+        
+        # Split name
+        name_parts = current_user.name.split(' ', 1) if hasattr(current_user, 'name') else ["Parent", ""]
+        first = name_parts[0]
+        last = name_parts[1] if len(name_parts) > 1 else ""
+
+        return {
+            "user_id": current_user.user_id,
+            "first_name": first,
+            "last_name": last,
+            "email": v2_creds.email_id if v2_creds else None,
+            "phone_number": v2_parent.phone_number if v2_parent else None,
+            "parent_id": current_user.user_id,
+            "occupation": "Parent"
+        }
+
+    # Fallback V1
     parent_details = db.query(Parent).filter(Parent.user_id == current_user.user_id).first()
     
     return {
