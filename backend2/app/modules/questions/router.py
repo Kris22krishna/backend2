@@ -6,11 +6,13 @@ All endpoints follow SkillBuilder API standards.
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+import random
 from typing import Optional
 
 from app.db.session import get_db
 from app.core.security import get_current_user
 from app.modules.questions import schemas, service
+from app.modules.questions.models import QuestionGeneration
 from app.modules.questions.executor import CodeExecutionError, CodeTimeoutError
 
 router = APIRouter(prefix="/question-templates", tags=["Question Templates"])
@@ -793,99 +795,103 @@ def get_practice_questions_by_skill(
     Finds the latest active v2 template for the skill and generates questions.
     """
     try:
-        # Find templates for this skill
-        query = db.query(QuestionGeneration).filter(
+        # Find all templates for this skill
+        all_templates = db.query(QuestionGeneration).filter(
             QuestionGeneration.skill_id == skill_id
-        )
+        ).all()
         
-        # Apply difficulty filter if provided
-        if difficulty:
-            diff_query = query.filter(QuestionGeneration.difficulty.ilike(difficulty))
-            # Only use difficulty filter if it returns results
-            if diff_query.count() > 0:
-                query = diff_query
-        
-        templates = query.order_by(QuestionGeneration.template_id.desc()).all()
-        
-        if not templates:
+        if not all_templates:
             return schemas.APIResponse(
                 success=False,
-                data=None,
+                data=None, 
                 error=schemas.ErrorDetail(
                     code="TEMPLATE_NOT_FOUND",
                     message=f"No practice content found for skill ID {skill_id}"
                 ).dict()
             )
 
-        # Detect available types
-        available_types = list(set([t.type for t in templates if t.type]))
-        # Sort available_types to ensure MCQ is first if it exists
-        available_types.sort(key=lambda x: 0 if x.upper() == 'MCQ' else 1)
-        
-        # Logic: If type NOT specified and we have multiple distinct types, ask user to choose
-        # Exception 1: If count=1 (Preview Mode), just pick a default/latest instead of asking
-        # Exception 2: For Junior Grades (1-4), automatically pick the best type (MCQ) instead of asking
-        is_junior = any(t.grade <= 4 for t in templates)
-        
-        if count > 1 and not type and len(available_types) > 1 and not is_junior:
-            # Check if they are actually different types (ignore case)
-            unique_types_normalized = set(t.upper() for t in available_types)
-            if len(unique_types_normalized) > 1:
-                return schemas.APIResponse(
-                    success=True,
-                    data={
-                        "selection_needed": True,
-                        "available_types": available_types,
-                        "skill_id": skill_id
-                    },
-                    error=None
-                )
-
-        # Select template
-        template = None
+        # Filter by type if requested (e.g., MCQ vs User Input)
+        filtered_templates = all_templates
         if type:
-            # Find first template matching requested type
-            template = next((t for t in templates if t.type and t.type.upper() == type.upper()), None)
+            type_matches = [t for t in all_templates if t.type and t.type.lower() == type.lower()]
+            if type_matches:
+                filtered_templates = type_matches
+
+        # Selection Logic:
+        # 1. If explicit difficulty requested, try to find it.
+        # 2. Else, Waterfall: Medium -> Easy -> Hard -> Any.
         
-        if not template:
-            # Fallback: Prioritize MCQ if available, else latest
-            template = next((t for t in templates if t.type and t.type.upper() == 'MCQ'), templates[0])
+        selected_template = None
+        
+        if difficulty:
+            diff_matches = [t for t in filtered_templates if t.difficulty and t.difficulty.lower() == difficulty.lower()]
+            if diff_matches:
+                selected_template = random.choice(diff_matches)
+        
+        if not selected_template:
+            # Apply Waterfall Logic on filtered_templates
+            mediums = [t for t in filtered_templates if t.difficulty and t.difficulty.lower() == 'medium']
+            easys = [t for t in filtered_templates if t.difficulty and t.difficulty.lower() == 'easy']
+            hards = [t for t in filtered_templates if t.difficulty and t.difficulty.lower() == 'hard']
             
+            if mediums:
+                selected_template = random.choice(mediums)
+            elif easys:
+                selected_template = random.choice(easys)
+            elif hards:
+                selected_template = random.choice(hards)
+            else:
+                # Fallback to any available if standard difficulties not found
+                if filtered_templates:
+                    selected_template = random.choice(filtered_templates)
+        
+
+
+        # Generate questions using the selected template
+        if not selected_template:
+             # Should be covered by "if not all_templates" but safe guard
+             return schemas.APIResponse(
+                success=False,
+                data=None,
+                error=schemas.ErrorDetail(
+                    code="TEMPLATE_MATCH_FAILED", 
+                    message="No suitable template found matching criteria"
+                ).dict()
+            )
+
         preview_result = service.QuestionGenerationService.preview_generation_v2(
             db=db,
-            question_code=template.question_template,
-            answer_code=template.answer_template,
-            solution_code=template.solution_template,
+            question_code=selected_template.question_template,
+            answer_code=selected_template.answer_template,
+            solution_code=selected_template.solution_template,
             count=count
         )
         
-        # Inject metadata so frontend can display skill info
-        preview_result["template_metadata"] = {
-            "template_id": template.template_id,
-            "skill_id": template.skill_id,
-            "skill_name": template.skill_name,
-            "category": template.category,
-            "grade": template.grade,
-            "difficulty": template.difficulty,
-            "topic": template.skill_name # Fallback for V1 UI compatibility
-        }
+        # Add template_id to each question sample
+        if 'preview_samples' in preview_result:
+            for sample in preview_result['preview_samples']:
+                sample['template_id'] = selected_template.template_id
         
+        # Enrich result with template metadata for frontend
+        preview_result['template_metadata'] = {
+            'template_id': selected_template.template_id,
+            'difficulty': selected_template.difficulty,
+            'skill_name': selected_template.skill_name,
+            'grade': selected_template.grade,
+            'type': selected_template.type
+        }
+
         return schemas.APIResponse(
             success=True,
             data=preview_result,
             error=None
         )
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return schemas.APIResponse(
-            success=False,
-            data=None,
-            error=schemas.ErrorDetail(
-                code="GENERATION_ERROR",
-                message=str(e)
-            ).dict()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "INTERNAL_ERROR", "message": str(e)}
         )
+
 
 
 @new_templates_router.patch("/{template_id}", response_model=schemas.APIResponse)

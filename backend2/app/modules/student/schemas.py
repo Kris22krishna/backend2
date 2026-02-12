@@ -1,19 +1,19 @@
 from pydantic import ConfigDict, BaseModel
-from typing import Optional, List
+from typing import Optional, List, Union
 from datetime import datetime, date
 from uuid import UUID
 
 class StudentProfile(BaseModel):
-    user_id: UUID
-    first_name: Optional[str]
-    last_name: Optional[str]
-    email: Optional[str]
-    student_id: Optional[UUID]
-    grade: Optional[str]
-    section: Optional[str]
-    roll_number: Optional[str]
-    tenant_name: Optional[str]
-    school_name: Optional[str]
+    user_id: Union[int, UUID, str]
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    student_id: Optional[Union[int, UUID, str]] = None
+    grade: Optional[str] = None
+    section: Optional[str] = None
+    roll_number: Optional[str] = None
+    tenant_name: Optional[str] = None
+    school_name: Optional[str] = None
     
     model_config = ConfigDict(from_attributes=True)
 

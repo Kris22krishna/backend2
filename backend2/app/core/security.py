@@ -39,17 +39,25 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user_id_str is None:
         raise credentials_exception
     
-    # Convert string UUID to UUID object for comparison
+    # Try V2 (Integer ID)
+    if user_id_str.isdigit():
+        from app.modules.auth.models import V2User
+        user = db.query(V2User).filter(V2User.user_id == int(user_id_str)).first()
+        if user:
+            # Add compatibility property dynamically or assume caller handles it
+            # For now, let's just return the user.
+            return user
+
+    # Try V1 (UUID)
     try:
         user_id = UUID(user_id_str)
+        user = db.query(User).filter(User.user_id == user_id).first()
+        if user:
+            return user
     except (ValueError, AttributeError):
-        raise credentials_exception
+        pass
         
-    # We link via Credential or User. The token has user_id, which matches User.user_id
-    user = db.query(User).filter(User.user_id == user_id).first()
-    if user is None:
-        raise credentials_exception
-    return user
+    raise credentials_exception
 
 from passlib.context import CryptContext
 

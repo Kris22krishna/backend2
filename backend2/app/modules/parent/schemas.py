@@ -4,18 +4,18 @@ from datetime import datetime
 from uuid import UUID
 
 class ParentProfile(BaseModel):
-    user_id: UUID
+    user_id: int
     first_name: Optional[str]
     last_name: Optional[str]
     email: Optional[str]
     phone_number: Optional[str]
-    parent_id: Optional[UUID]
+    parent_id: Optional[int]
     occupation: Optional[str]
     
     model_config = ConfigDict(from_attributes=True)
 
 class ChildDetail(BaseModel):
-    student_id: UUID
+    student_id: int
     name: str
     grade: Optional[str]
     school_name: Optional[str]
@@ -38,7 +38,7 @@ class LinkChildRequest(BaseModel):
 class LinkChildResponse(BaseModel):
     message: str
     student_name: str
-    student_id: UUID
+    student_id: int
 
 class SkillStat(BaseModel):
     name: str
