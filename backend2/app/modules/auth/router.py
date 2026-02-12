@@ -52,7 +52,7 @@ def predict_username(data: PredictUsernameRequest, db: Session = Depends(get_db)
             
     return {"username": generated_username}
 
-@router.post("/register")
+@router.post("/register", response_model=V2UserResponse)
 def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
     """
     Register a new user (V2).
