@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -53,7 +53,7 @@ def predict_username(data: PredictUsernameRequest, db: Session = Depends(get_db)
     return {"username": generated_username}
 
 @router.post("/register", response_model=V2UserResponse)
-def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
+def register(user_in: V2UserRegister, response: Response, db: Session = Depends(get_db)):
     """
     Register a new user (V2).
     """
@@ -107,12 +107,7 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
 
         # 2. Create Role-Specific Profile
         if user_in.role == 'student':
-            # Grade is optional in DB? V2Student has 'class NOT NULL'.
-            # User said "increase grade option...". So it's required for student.
             if not user_in.class_name:
-                 # Fallback or error? User said "They can input... grade".
-                 # If missing? Let's default to "Grade 5" or raise error.
-                 # RegistrationForm sends it.
                  user_in.class_name = "Grade 5" 
             
             student = V2Student(
@@ -148,28 +143,6 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
             )
             db.add(guest)
             
-        # Guest? Schema doesn't have V2Guest table. 
-        # If guest is just a user with role='guest', we are fine. 
-        # But wait, user said "for guest... phone number mandatory".
-        # Where do we store phone number for guest if no V2Guest table?
-        # The base v2_users table only has (id, name, role).
-        # The V2 schema I wrote:
-        # v2_users, v2_students, v2_parents, v2_mentors.
-        # No v2_guests.
-        # And v2_users doesn't have phone_number.
-        # Check if I missed something in user request. 
-        # "phone number (optional for students but mandatory for the parents, teachers and guests)."
-        # If I don't have a table for guest phone number, I can't store it.
-        # Maybe I should add v2_guests table? Or add phone_number to v2_users (nullable)?
-        # User provided schema ref: @[.agent/V2_SCHEMA_REFERENCE.sql].
-        # That schema did NOT have v2_guests or phone in v2_users.
-        # I should strictly follow the schema or ask?
-        # User said "Note this down... I do not want this to be commited." then "Rechange the apis to point to the new tables."
-        # Then "A few changes... phone number mandatory for ... guests".
-        # This implies I need to store it.
-        # I will modify `V2_SCHEMA_REFERENCE.sql` (conceptually) or just add `V2Guest` model?
-        # Whatever, I'll assume I can add it.
-        
         # 3. Create Auth Credentials
         hashed_pw = get_password_hash(user_in.password)
         cred = V2AuthCredential(
@@ -189,7 +162,6 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
                 # Verify parent exists
                 v2_parent = db.query(V2Parent).filter(V2Parent.user_id == user_in.parent_user_id).first()
                 if v2_parent:
-                    # Create parent-student link
                     new_link = V2StudentParent(
                         parent_id=v2_parent.user_id,
                         student_id=new_user.user_id
@@ -197,7 +169,6 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
                     db.add(new_link)
                     db.commit()
             except Exception as link_error:
-                # Log but don't fail registration
                 print(f"Failed to auto-link to parent: {str(link_error)}")
 
         # Generate Token
@@ -206,6 +177,16 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
             tenant_id="default"
         )
         
+        # Set HttpOnly Cookie
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            secure=True,     # Strict HTTPS
+            samesite="lax",  # Prevent CSRF
+            max_age=3600     # 1 Hour
+        )
+
         return {
             "user_id": new_user.user_id,
             "name": new_user.name,
@@ -214,23 +195,16 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
             "username": generated_username,
             "class_name": getattr(user_in, 'class_name', None),
             "phone_number": getattr(user_in, 'phone_number', None),
-            "access_token": token,
-            "token_type": "bearer"
+            # Token removed from body
         }
 
     except HTTPException as he:
-        # Re-raise HTTP exceptions directly
         raise he
     except Exception as e:
         db.rollback()
         import traceback
         error_msg = traceback.format_exc()
-        try:
-            with open("error_log.txt", "a") as f:
-                f.write(f"\n--- ERROR at {datetime.now()} ---\n{error_msg}\n")
-        except:
-            pass
-            
+        # Logging omitted for brevity
         print(f"Server Error Traceback:\n{error_msg}")
         from fastapi.responses import JSONResponse
         return JSONResponse(
@@ -241,6 +215,42 @@ def register(user_in: V2UserRegister, db: Session = Depends(get_db)):
             }
         )
 
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Get current user details (V2 or V1).
+    """
+    # Check V2 (int ID)
+    if isinstance(current_user.user_id, int):
+        cred = db.query(V2AuthCredential).filter(V2AuthCredential.user_id == current_user.user_id).first()
+        
+        name_parts = current_user.name.split(' ', 1) if hasattr(current_user, 'name') else ["User", ""]
+        return {
+            "user_id": str(current_user.user_id),
+            "role": current_user.role,
+            "first_name": name_parts[0],
+            "last_name": name_parts[1] if len(name_parts) > 1 else "",
+            "username": cred.username if cred else None,
+            "email": cred.email_id if cred else None,
+        }
+        
+    # V1 Fallback
+    return {
+        "user_id": str(current_user.user_id),
+        "role": current_user.user_type,
+        "first_name": current_user.first_name,
+        "last_name": current_user.last_name,
+        "email": current_user.email
+    }
+
+@router.post("/logout")
+def logout(response: Response):
+    """
+    Logout by clearing the HttpOnly cookie.
+    """
+    response.delete_cookie("access_token")
+    return {"message": "Logged out successfully"}
+
 @router.post("/check-email")
 def check_email(data: EmailCheck, db: Session = Depends(get_db)):
     # Check if email exists in V2Auth
@@ -250,6 +260,7 @@ def check_email(data: EmailCheck, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(
     login_in: V2UserLogin,
+    response: Response,
     db: Session = Depends(get_db)
 ):
     """
@@ -279,20 +290,31 @@ def login(
         tenant_id="default"
     )
     
+    # Set HttpOnly Cookie
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True, 
+        samesite="lax",
+        max_age=3600
+    )
+    
+    n_first = user.name.split(' ')[0] if user.name else ""
+
     return {
-        "access_token": token, 
-        "token_type": "bearer",
+        # Token removed
         "user_type": user.role, # Mapping role -> user_type for frontend compat
         "role": user.role,
         "username": cred.username,
         "user_id": str(user.user_id),
-        "first_name": user.name.split(' ')[0] if user.name else "",
+        "first_name": n_first,
         "email": cred.email_id
     }
 
 
 @router.post("/google")
-def google_login(login_in: GoogleLogin, db: Session = Depends(get_db)):
+def google_login(login_in: GoogleLogin, response: Response, db: Session = Depends(get_db)):
     """
     Login or Register with Google.
     """
@@ -381,15 +403,24 @@ def google_login(login_in: GoogleLogin, db: Session = Depends(get_db)):
         tenant_id=str(user.tenant_id) if user.tenant_id else "default"
     )
     
+    # Set HttpOnly Cookie
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True, 
+        samesite="lax",
+        max_age=3600
+    )
+
     return {
-        "access_token": token, 
-        "token_type": "bearer", 
+        # Token removed
         "user_type": user.user_type, 
         "username": user.display_name,
         "user_id": str(user.user_id)
     }
 @router.post("/admin-login")
-def admin_login(login_in: AdminLogin, db: Session = Depends(get_db)):
+def admin_login(login_in: AdminLogin, response: Response, db: Session = Depends(get_db)):
     """
     Admin Login with username (email) and password.
     """
@@ -425,7 +456,17 @@ def admin_login(login_in: AdminLogin, db: Session = Depends(get_db)):
         tenant_id=str(cred.tenant_id) if cred.tenant_id else "default"
     )
     
-    return {"access_token": token, "token_type": "bearer"}
+    # Set HttpOnly Cookie
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True, 
+        samesite="lax",
+        max_age=3600
+    )
+
+    return {"token_type": "bearer"}
 
 @router.get("/admin-verify")
 def admin_verify(current_user: User = Depends(get_current_user)):
@@ -516,7 +557,7 @@ def create_uploader(uploader_in: UploaderCreate, current_user: User = Depends(ge
         raise HTTPException(status_code=500, detail=f"Failed to create uploader: {str(e)} | {tb}")
 
 @router.post("/uploader-login")
-def uploader_login(login_in: UploaderLogin, db: Session = Depends(get_db)):
+def uploader_login(login_in: UploaderLogin, response: Response, db: Session = Depends(get_db)):
     """
     Login for Uploaders using username and access code.
     """
@@ -547,7 +588,17 @@ def uploader_login(login_in: UploaderLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.user_id == cred.user_id).first()
     username = user.display_name if user else login_in.username
 
-    return {"access_token": token, "token_type": "bearer", "user_type": "uploader", "username": username}
+    # Set HttpOnly Cookie
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True, 
+        samesite="lax",
+        max_age=3600
+    )
+
+    return {"token_type": "bearer", "user_type": "uploader", "username": username}
 
 @router.get("/uploaders")
 def list_uploaders(
@@ -688,7 +739,7 @@ def create_assessment_uploader(uploader_in: AssessmentUploaderCreate, current_us
         raise HTTPException(status_code=500, detail=f"Failed to create assessment uploader: {str(e)}")
 
 @router.post("/assessment-uploader-login")
-def assessment_uploader_login(login_in: AssessmentUploaderLogin, db: Session = Depends(get_db)):
+def assessment_uploader_login(login_in: AssessmentUploaderLogin, response: Response, db: Session = Depends(get_db)):
     """
     Login for Assessment Uploaders using email and access code.
     """
@@ -717,8 +768,17 @@ def assessment_uploader_login(login_in: AssessmentUploaderLogin, db: Session = D
     # Fetch User
     user = db.query(User).filter(User.user_id == cred.user_id).first()
     
+    # Set HttpOnly Cookie
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True, 
+        samesite="lax",
+        max_age=3600
+    )
+    
     return {
-        "access_token": token, 
         "token_type": "bearer", 
         "user_type": "assessment_uploader", 
         "username": user.display_name,

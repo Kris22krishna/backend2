@@ -16,22 +16,34 @@ def decode_token(token: str):
     except jwt.PyJWTError:
         return None
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.modules.auth.models import User, Credential
 from uuid import UUID
+from typing import Optional
 
 # CRITICAL: This tokenUrl must match the actual login endpoint
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/v1/auth/login", auto_error=False)
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(
+    request: Request,
+    token: Optional[str] = Depends(oauth2_scheme), 
+    db: Session = Depends(get_db)
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    # Prioritize Cookie, fall back to Header
+    token = request.cookies.get("access_token") or token
+    
+    if not token:
+        raise credentials_exception
+
     payload = decode_token(token)
     if payload is None:
         raise credentials_exception

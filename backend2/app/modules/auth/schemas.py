@@ -93,7 +93,12 @@ class V2UserResponse(BaseModel):
     name: str
     role: str
     email: Optional[str] = None
-    token: str
+    token: Optional[str] = None
+    access_token: Optional[str] = None
+    username: Optional[str] = None
+    class_name: Optional[str] = None
+    phone_number: Optional[str] = None
+    token_type: Optional[str] = None
 
 class EmailCheck(BaseModel):
     email: EmailStr
@@ -101,3 +106,12 @@ class EmailCheck(BaseModel):
 class PredictUsernameRequest(BaseModel):
     name: str
     role: str
+
+class UserMe(BaseModel):
+    user_id: str 
+    email: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    role: str
+    username: Optional[str] = None
+
