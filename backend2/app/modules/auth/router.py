@@ -302,7 +302,7 @@ def login(
     
     n_first = user.name.split(' ')[0] if user.name else ""
 
-    return {
+    response_data = {
         # Token removed
         "user_type": user.role, # Mapping role -> user_type for frontend compat
         "role": user.role,
@@ -311,6 +311,14 @@ def login(
         "first_name": n_first,
         "email": cred.email_id
     }
+
+    if user.role == 'student':
+        student = db.query(V2Student).filter(V2Student.user_id == user.user_id).first()
+        if student:
+            response_data["grade"] = student.class_name
+            response_data["class_name"] = student.class_name
+
+    return response_data
 
 
 @router.post("/google")
@@ -413,12 +421,20 @@ def google_login(login_in: GoogleLogin, response: Response, db: Session = Depend
         max_age=3600
     )
 
-    return {
+    response_data = {
         # Token removed
         "user_type": user.user_type, 
         "username": user.display_name,
         "user_id": str(user.user_id)
     }
+
+    if user.user_type == 'student':
+        student = db.query(Student).filter(Student.user_id == user.user_id).first()
+        if student:
+            response_data["grade"] = student.grade
+            response_data["class_name"] = student.grade
+            
+    return response_data
 @router.post("/admin-login")
 def admin_login(login_in: AdminLogin, response: Response, db: Session = Depends(get_db)):
     """
