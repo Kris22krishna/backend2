@@ -195,7 +195,10 @@ def register(user_in: V2UserRegister, response: Response, db: Session = Depends(
             "username": generated_username,
             "class_name": getattr(user_in, 'class_name', None),
             "phone_number": getattr(user_in, 'phone_number', None),
-            # Token removed from body
+            "phone_number": getattr(user_in, 'phone_number', None),
+            # Token returned for cross-domain fallback
+            "access_token": token,
+            "token_type": "bearer"
         }
 
     except HTTPException as he:
@@ -303,13 +306,10 @@ def login(
     n_first = user.name.split(' ')[0] if user.name else ""
 
     response_data = {
-        # Token removed
-        "user_type": user.role, # Mapping role -> user_type for frontend compat
-        "role": user.role,
-        "username": cred.username,
-        "user_id": str(user.user_id),
         "first_name": n_first,
-        "email": cred.email_id
+        "email": cred.email_id,
+        "access_token": token,
+        "token_type": "bearer"
     }
 
     if user.role == 'student':
@@ -425,7 +425,9 @@ def google_login(login_in: GoogleLogin, response: Response, db: Session = Depend
         # Token removed
         "user_type": user.user_type, 
         "username": user.display_name,
-        "user_id": str(user.user_id)
+        "user_id": str(user.user_id),
+        "access_token": token,
+        "token_type": "bearer"
     }
 
     if user.user_type == 'student':
@@ -482,7 +484,7 @@ def admin_login(login_in: AdminLogin, response: Response, db: Session = Depends(
         max_age=3600
     )
 
-    return {"token_type": "bearer"}
+    return {"token_type": "bearer", "access_token": token}
 
 @router.get("/admin-verify")
 def admin_verify(current_user: User = Depends(get_current_user)):
@@ -614,7 +616,7 @@ def uploader_login(login_in: UploaderLogin, response: Response, db: Session = De
         max_age=3600
     )
 
-    return {"token_type": "bearer", "user_type": "uploader", "username": username}
+    return {"token_type": "bearer", "access_token": token, "user_type": "uploader", "username": username}
 
 @router.get("/uploaders")
 def list_uploaders(
@@ -796,6 +798,7 @@ def assessment_uploader_login(login_in: AssessmentUploaderLogin, response: Respo
     
     return {
         "token_type": "bearer", 
+        "access_token": token,
         "user_type": "assessment_uploader", 
         "username": user.display_name,
         "email": user.email
