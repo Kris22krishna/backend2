@@ -308,6 +308,7 @@ def login(
     response_data = {
         "first_name": n_first,
         "email": cred.email_id,
+        "role": user.role,
         "access_token": token,
         "token_type": "bearer"
     }
