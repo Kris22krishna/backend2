@@ -54,11 +54,13 @@ app.add_middleware(
         "https://www.skill100.ai",
         "https://skill100.ai",
         "https://backend2-red.vercel.app",
+        "https://backend2-krishnas-projects-c104e4ff.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Force redeployment for CORS updates
 
 api_router = APIRouter()
 api_router.include_router(upload_router, tags=["upload"])
