@@ -156,3 +156,5 @@ class V2Guest(Base):
     user_id = Column(Integer, ForeignKey("v2_users.user_id", ondelete="CASCADE"), primary_key=True)
     phone_number = Column(String, nullable=False)
 
+
+

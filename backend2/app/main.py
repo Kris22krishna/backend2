@@ -24,7 +24,9 @@ from app.modules.puzzles.router import router as puzzles_router
 from app.modules.reports.router import router as reports_router
 from app.modules.admin.dashboard_router import router as dashboard_router
 from app.modules.skills.router import router as skills_router
+from app.modules.skills.router import router as skills_router
 from app.modules.practice.router import router as practice_router
+from app.modules.mentor.router import router as mentor_router
 
 from fastapi.staticfiles import StaticFiles
 from app.modules.upload.router import router as upload_router
@@ -83,7 +85,9 @@ api_router.include_router(dashboard_router)  # Has /admin prefix built-in
 api_router.include_router(skills_router)
 api_router.include_router(new_templates_router)
 api_router.include_router(assessment_integration_router)
+api_router.include_router(assessment_integration_router)
 api_router.include_router(practice_router)
+api_router.include_router(mentor_router)
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
