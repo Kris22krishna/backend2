@@ -28,6 +28,7 @@ def _skill_to_dict(skill: Skill) -> dict:
         "skill_id": skill.skill_id,
         "grade": skill.grade,
         "topic": skill.topic,
+        "sub_topic": skill.sub_topic,
         "skill_name": skill.skill_name
     }
 

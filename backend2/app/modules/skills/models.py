@@ -11,4 +11,5 @@ class Skill(Base):
     skill_id = Column(Integer, primary_key=True, autoincrement=True)
     grade = Column(Integer, nullable=False, index=True)
     topic = Column(Text, nullable=False)  # Category/Topic name
+    sub_topic = Column(Text, nullable=True) # Nested Sub-category
     skill_name = Column(Text, nullable=False)

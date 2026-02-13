@@ -6,6 +6,7 @@ class SkillCreate(BaseModel):
     """Schema for creating a new skill"""
     grade: int
     topic: str
+    sub_topic: Optional[str] = None
     skill_name: str
 
 
@@ -13,6 +14,7 @@ class SkillUpdate(BaseModel):
     """Schema for updating a skill"""
     grade: Optional[int] = None
     topic: Optional[str] = None
+    sub_topic: Optional[str] = None
     skill_name: Optional[str] = None
 
 
@@ -21,6 +23,7 @@ class SkillResponse(BaseModel):
     skill_id: int
     grade: int
     topic: str
+    sub_topic: Optional[str] = None
     skill_name: str
     
     class Config:
