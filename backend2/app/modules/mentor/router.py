@@ -115,22 +115,22 @@ def get_mentor_stats(
             "daily_stats": []
         }
 
-    # 2. Daily Stats from QuestionAttempt (More granular and accurate for "Today")
-    from app.modules.practice.models import QuestionAttempt
-    from sqlalchemy import func, cast, Date, Integer
+    # 2. Daily Stats from V2PracticeSessions
+    from app.modules.practice.models import PracticeSession as V2PracticeSession
+    from sqlalchemy import func, cast, Date
     from datetime import date
 
     # Group by date for Time and Questions Solved (Total Correct)
     daily_query = db.query(
-        cast(QuestionAttempt.attempted_at, Date).label('date'),
-        func.sum(QuestionAttempt.time_spent_seconds).label('total_time'),
-        func.sum(cast(QuestionAttempt.is_correct, Integer)).label('total_solved')
+        cast(V2PracticeSession.started_at, Date).label('date'),
+        func.sum(V2PracticeSession.total_time_seconds).label('total_time'),
+        func.sum(V2PracticeSession.total_questions).label('total_solved')
     ).filter(
-        QuestionAttempt.user_id.in_(student_ids)
+        V2PracticeSession.user_id.in_(student_ids)
     ).group_by(
-        cast(QuestionAttempt.attempted_at, Date)
+        cast(V2PracticeSession.started_at, Date)
     ).order_by(
-        cast(QuestionAttempt.attempted_at, Date).asc()
+        cast(V2PracticeSession.started_at, Date).asc()
     ).all()
 
     daily_stats = []
@@ -153,7 +153,8 @@ def get_mentor_stats(
         daily_stats.append({
             "date": day_date_str,
             "total_time_seconds": day_total_time,
-            "avg_time_seconds": int(day_total_time / total_students) if total_students > 0 else 0
+            "avg_time_seconds": int(day_total_time / total_students) if total_students > 0 else 0,
+            "total_solved": day_total_solved
         })
 
     # Calculate Avg for Today

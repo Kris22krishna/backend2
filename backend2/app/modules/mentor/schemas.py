@@ -34,6 +34,7 @@ class DailyStat(BaseModel):
     date: str
     total_time_seconds: int
     avg_time_seconds: int
+    total_solved: Optional[int] = 0
 
 class MentorStatsResponse(BaseModel):
     total_students: int
